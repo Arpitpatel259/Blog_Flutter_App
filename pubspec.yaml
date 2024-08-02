@@ -73,8 +73,8 @@ flutter:
     - assets/
     - assets/Welcome_Anim.json
     - assets/verification_animation.json
-    #- assets/logos/facebook.jpg
-    #- assets/logos/google.jpg
+    - assets/logos/facebook.png
+    - assets/logos/google.png
     - assets/logos/
 
     # An image asset can refer to one or more resolution-specific "variants", see

@@ -4,7 +4,7 @@ import 'package:blog/Services/Database.dart';
 import 'package:blog/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +12,9 @@ import 'package:firebase_core/firebase_core.dart';
 
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: kIsWeb ? '658979738135-d2llurejibm6rnlli6d870fpl8ach6qo.apps.googleusercontent.com' : null,
+  );
 
   var firstController = TextEditingController();
   var emailController = TextEditingController();
@@ -24,6 +26,7 @@ class AuthMethods {
     return _auth.currentUser;
   }
 
+  // Google Login
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
       // Web specific initialization
@@ -67,8 +70,26 @@ class AuthMethods {
             SharedPreferences prefs = await SharedPreferences.getInstance();
             await prefs.setBool('isLoggedIn', true);
             await prefs.setString('userId', user.uid);
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const DashboardScreen()));
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("You Have Been Logged In Successfully!"),
+                backgroundColor: Colors.teal,
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Dismiss',
+                  disabledTextColor: Colors.white,
+                  textColor: Colors.yellow,
+                  onPressed: () {},
+                ),
+              ),
+            );
+
+            Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const DashboardScreen()),
+                (route) => false);
           });
         }
       }
@@ -79,23 +100,7 @@ class AuthMethods {
     }
   }
 
-  Future<void> logout(BuildContext context) async {
-    try {
-      // Sign out from Google
-      await _googleSignIn.signOut();
-
-      // Clear Shared Preferences
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => const userLoginScreen()));
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error during logout: $e');
-      }
-    }
-  }
-
+  //Register With Email/Password
   Future<void> registerUser(String name, String email, String mobile,
       String password, String cPassword) async {
     if (password != cPassword) {
@@ -140,6 +145,7 @@ class AuthMethods {
     }
   }
 
+  //Login with Email/Password
   Future<void> userLogin(
       String email, String password, BuildContext context) async {
     try {
@@ -159,11 +165,6 @@ class AuthMethods {
           await prefs.setString("name", userSnapshot['name']);
           await prefs.setString("id", userSnapshot.id);
 
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            (Route<dynamic> route) => false,
-          );
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text("You Have Been Logged In Successfully!"),
@@ -176,6 +177,11 @@ class AuthMethods {
                 onPressed: () {},
               ),
             ),
+          );
+
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            (Route<dynamic> route) => false,
           );
         } else {
           throw Exception("User data not found in Firestore");
@@ -223,6 +229,7 @@ class AuthMethods {
     }
   }
 
+  //Reset Password Using Link
   Future<void> resetPassword(String emailId, BuildContext context) async {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: emailId);
@@ -263,6 +270,24 @@ class AuthMethods {
             ),
           ),
         );
+      }
+    }
+  }
+
+  //Logout Your Session
+  Future<void> logout(BuildContext context) async {
+    try {
+      // Sign out from Google
+      await _googleSignIn.signOut();
+
+      // Clear Shared Preferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (context) => const userLoginScreen()));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error during logout: $e');
       }
     }
   }
