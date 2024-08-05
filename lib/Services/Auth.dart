@@ -2,6 +2,7 @@ import 'package:blog/Authentication/userLogin.dart';
 import 'package:blog/Screens/Dashboard.dart';
 import 'package:blog/Services/Database.dart';
 import 'package:blog/firebase_options.dart';
+import 'package:blog/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode, kIsWeb;
@@ -70,6 +71,9 @@ class AuthMethods {
             SharedPreferences prefs = await SharedPreferences.getInstance();
             await prefs.setBool('isLoggedIn', true);
             await prefs.setString('userId', user.uid);
+            await prefs.setString('email', user.email.toString());
+            await prefs.setString('name', user.displayName.toString());
+            await prefs.setString('imgUrl', user.photoURL.toString());
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -88,7 +92,7 @@ class AuthMethods {
             Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const DashboardScreen()),
+                    builder: (context) => const MainPage()),
                 (route) => false);
           });
         }
@@ -180,7 +184,7 @@ class AuthMethods {
           );
 
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            MaterialPageRoute(builder: (context) => const MainPage()),
             (Route<dynamic> route) => false,
           );
         } else {

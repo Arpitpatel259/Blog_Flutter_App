@@ -44,6 +44,11 @@ dependencies:
   firebase_storage: ^11.4.0
   flutter_platform_widgets: ^6.1.0
   lottie: ^3.1.2
+  firebase_app_check: ^0.2.1+17
+  internet_connection_checker: ^1.0.0+1
+  connectivity_plus: ^4.0.2
+  image_picker: ^1.0.8
+  permission_handler: ^11.3.1
 
 
 dev_dependencies:

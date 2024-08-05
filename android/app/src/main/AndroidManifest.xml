@@ -1,4 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Request read/write external storage permissions -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <!-- Request camera permission if you are also using the camera to take photos -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+
     <application
         android:label="Blog"
         android:name="${applicationName}"

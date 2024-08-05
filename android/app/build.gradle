@@ -45,6 +45,7 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
+        resValue "string", "E9DF94666222479C9A126B90D39562B0", "d39c0023b2b647688df9134a909693e3"
     }
 
     buildTypes {

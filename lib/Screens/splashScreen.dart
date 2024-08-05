@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:blog/Authentication/userLogin.dart';
 import 'package:blog/Screens/Dashboard.dart';
+import 'package:blog/main.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (isLoggedIn == true) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(builder: (context) => const MainPage()),
               (route) => false,
         );
       } else {
