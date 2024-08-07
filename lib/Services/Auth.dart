@@ -1,12 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:blog/Authentication/userLogin.dart';
-import 'package:blog/Screens/Dashboard.dart';
 import 'package:blog/Services/Database.dart';
 import 'package:blog/firebase_options.dart';
 import 'package:blog/main.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode, kIsWeb;
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -14,7 +16,9 @@ import 'package:firebase_core/firebase_core.dart';
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? '658979738135-d2llurejibm6rnlli6d870fpl8ach6qo.apps.googleusercontent.com' : null,
+    clientId: kIsWeb
+        ? '658979738135-d2llurejibm6rnlli6d870fpl8ach6qo.apps.googleusercontent.com'
+        : null,
   );
 
   var firstController = TextEditingController();
@@ -22,6 +26,10 @@ class AuthMethods {
   var mobileController = TextEditingController();
   var passwordController = TextEditingController();
   var cPasswordController = TextEditingController();
+
+  var authorController = TextEditingController();
+  var titleController = TextEditingController();
+  var contentController = TextEditingController();
 
   Future<User?> getCurrentUser() async {
     return _auth.currentUser;
@@ -91,8 +99,7 @@ class AuthMethods {
 
             Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(
-                    builder: (context) => const MainPage()),
+                MaterialPageRoute(builder: (context) => const MainPage()),
                 (route) => false);
           });
         }
@@ -293,6 +300,141 @@ class AuthMethods {
       if (kDebugMode) {
         print('Error during logout: $e');
       }
+    }
+  }
+
+  //Upload post function
+  Future<void> uploadPost(String author, String title, String content,
+      File? imageFile, BuildContext context) async {
+    try {
+      // Convert image to Base64 string
+      String? imageBase64;
+      if (imageFile != null) {
+        imageBase64 = await _convertImageToBase64(imageFile);
+      }
+
+      // Generate a unique ID for the blog post
+      String postId = FirebaseFirestore.instance.collection('Blog').doc().id;
+
+      DatabaseMethod databaseMethod = DatabaseMethod();
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Create a Map to hold the blog post data
+      Map<String, dynamic> postData = {
+        'id': postId,
+        'userId': prefs.getString('userId') ?? prefs.getString('id'),
+        'author': author,
+        'title': title,
+        'content': content,
+        'imageBase64': imageBase64,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      // Call the addBlogs function to upload the blog post
+      await databaseMethod.addBlogs(postId, postData);
+
+      authorController.clear();
+      titleController.clear();
+      contentController.clear();
+
+      // Show a success message or navigate to another page
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Blog post uploaded successfully!',
+          ),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {
+              //Do whatever you want
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to upload blog post $e',
+          ),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {
+              //Do whatever you want
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  //Convert Image
+  Future<String> _convertImageToBase64(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    return base64Encode(bytes);
+  }
+
+  //Delete Blog Which is Post by user
+  Future<void> deleteBlogByUser(BuildContext context, String blogId) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    try {
+      await _firestore.collection('Blog').doc(blogId).delete();
+      print('Blog deleted successfully');
+    } catch (e) {
+      print('Error deleting blog: $e');
+    }
+  }
+
+  Future<void> updateBlog(blog, String author, String title, String content, File? mediaFile, BuildContext context) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    try {
+
+      String? imageBase64;
+      if (mediaFile != null) {
+        imageBase64 = await _convertImageToBase64(mediaFile);
+      }
+
+      // Generate a unique ID for the blog post
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      Map<String, dynamic> postData = {
+        'id': blog,
+        'userId': prefs.getString('userId') ?? prefs.getString('id'),
+        'author': author,
+        'title': title,
+        'content': content,
+        'imageBase64': imageBase64,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      await _firestore.collection('Blog').doc(blog).update(postData);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Blog post updated successfully!',
+          ),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {
+              //Do whatever you want
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error updating blog: $e');
     }
   }
 }

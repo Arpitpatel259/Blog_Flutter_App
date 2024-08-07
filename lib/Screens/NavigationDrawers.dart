@@ -1,4 +1,5 @@
 import 'package:blog/Authentication/userLogin.dart';
+import 'package:blog/Screens/showMyBlogPost.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/main.dart';
 import 'package:flutter/cupertino.dart';
@@ -33,7 +34,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
   Future<void> init() async {
     logindata = await SharedPreferences.getInstance();
     setState(() {
-      newuser = (logindata.getBool('login') ?? false);
+      newuser = (logindata.getBool('isLoggedIn') ?? false);
       email = logindata.getString("email") ?? "";
       name = logindata.getString("name") ?? "";
       pImage = logindata.getString("imgUrl") ?? "";
@@ -153,13 +154,13 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                   ),
                   const SizedBox(height: 24),
                   buildMenuItem(
-                    text: 'Setting',
+                    text: 'My Blogs',
                     style: const TextStyle(
                       fontWeight: FontWeight.normal,
                       fontFamily: 'SF Pro',
                     ),
                     icon: Icons.settings,
-                    onClicked: () => selectedItems(context, 3),
+                    onClicked: () => selectedItems(context, 1),
                   ),
                   const SizedBox(height: 24),
                   buildMenuItem(
@@ -223,7 +224,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
       case 1:
         {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const userLoginScreen()),
+            MaterialPageRoute(builder: (context) => const showMyBlogPost()),
           );
           break;
         }

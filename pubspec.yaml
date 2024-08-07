@@ -49,6 +49,8 @@ dependencies:
   connectivity_plus: ^4.0.2
   image_picker: ^1.0.8
   permission_handler: ^11.3.1
+  path_provider: ^2.1.4
+  intl: ^0.19.0
 
 
 dev_dependencies:
@@ -80,6 +82,7 @@ flutter:
     - assets/verification_animation.json
     - assets/logos/facebook.png
     - assets/logos/google.png
+    - assets/logos/blog_sample.png
     - assets/logos/
 
     # An image asset can refer to one or more resolution-specific "variants", see

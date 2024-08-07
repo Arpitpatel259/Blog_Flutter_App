@@ -2,17 +2,16 @@
 
 import 'dart:async';
 
-import 'package:blog/Authentication/userLogin.dart';
 import 'package:blog/Screens/postBlogScreen.dart';
 import 'package:blog/Screens/splashScreen.dart';
+import 'package:blog/Utilities/cardwidgets.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'Screens/Dashboard.dart';
+import 'Screens/NavigationDrawers.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -21,7 +20,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await FirebaseAppCheck.instance.activate(
-    //webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
     androidProvider: AndroidProvider.debug,
     appleProvider: AppleProvider.appAttest,
   );
@@ -35,6 +34,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.blue,
@@ -152,12 +152,12 @@ class _MainPageState extends State<MainPage> {
           ),
         ),
       ),
-      body: Container(),
+      body: const BlogList(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const PostBlogScreen()),
+            MaterialPageRoute(builder: (context) => PostBlogScreen()),
           );
         },
         backgroundColor: Colors.blue,

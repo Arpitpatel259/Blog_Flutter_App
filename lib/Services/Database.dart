@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DatabaseMethod {
   Future addUser(String userId, Map<String, dynamic> userInfo) {
@@ -8,24 +9,54 @@ class DatabaseMethod {
         .set(userInfo);
   }
 
-  Future<List<Map<String, dynamic>>> getAllUsers() async {
+  Future<List<Map<String, dynamic>>> getAllBlogs() async {
     try {
-      // Get a reference to the 'User' collection
-      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('User')
-          .get();
+      final QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('Blog').get();
 
-      // Map each document snapshot to a map of its data
-      final List<Map<String, dynamic>> userList = querySnapshot.docs.map((doc) {
+      final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
         return doc.data() as Map<String, dynamic>;
       }).toList();
 
-      return userList;
+      return blogList;
     } catch (e) {
-      // Handle errors (e.g., network issues, permission errors)
-      print('Error fetching user data: $e');
+      print('Error fetching blog data: $e');
       return [];
     }
   }
 
+  Future<List<Map<String, dynamic>>> getCurrentUserBlogs() async {
+    try {
+      // Get the current user's ID
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No user is currently signed in.');
+        return [];
+      }
+      final userId = user.uid;
+
+      // Query Firestore to get only the blogs where the 'userId' field matches the current user's ID
+      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Blog')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      // Map the documents to a list of blog data
+      final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
+        return doc.data() as Map<String, dynamic>;
+      }).toList();
+
+      return blogList;
+    } catch (e) {
+      print('Error fetching blog data: $e');
+      return [];
+    }
+  }
+
+  Future addBlogs(String userId, Map<String, dynamic> userInfo) {
+    return FirebaseFirestore.instance
+        .collection("Blog")
+        .doc(userId)
+        .set(userInfo);
+  }
 }
