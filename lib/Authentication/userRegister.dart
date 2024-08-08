@@ -409,10 +409,9 @@ class _userRegisterScreen extends State<userRegisterScreen> {
                       _buildSignUpButton(),
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const userLoginScreen()),
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (context) => const userLoginScreen()),
+                                (Route<dynamic> route) => false,
                           );
                         },
                         child: RichText(

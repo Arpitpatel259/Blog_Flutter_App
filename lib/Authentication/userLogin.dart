@@ -4,7 +4,6 @@ import 'package:blog/Authentication/userRegister.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/Utilities/constant.dart';
 import 'package:blog/Utilities/validation.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,7 +18,6 @@ class userLoginScreen extends StatefulWidget {
 class _userLoginScreen extends State<userLoginScreen>
     with SingleTickerProviderStateMixin {
   bool _isObscure = true;
-  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   var emailController = TextEditingController();
   var passwordController = TextEditingController();
@@ -42,12 +40,12 @@ class _userLoginScreen extends State<userLoginScreen>
         children: [
           const Text(
             'Email',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: defaultPadding),
           TextFormField(
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Colors.black, fontFamily: 'OpenSans'),
+            style: const TextStyle(fontFamily: 'OpenSans'),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please Enter Email';
@@ -62,16 +60,15 @@ class _userLoginScreen extends State<userLoginScreen>
               filled: true,
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.only(top: 14.0),
-              prefixIcon: Icon(Icons.email, color: Colors.blue),
+              prefixIcon: Icon(Icons.email),
               hintText: 'Enter Your Email',
-              hintStyle: TextStyle(color: Colors.black38),
               errorStyle: TextStyle(fontSize: 15),
             ),
           ),
           const SizedBox(height: defaultPadding),
           const Text(
             'Password',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: defaultPadding),
           TextFormField(
@@ -85,7 +82,7 @@ class _userLoginScreen extends State<userLoginScreen>
               return null;
             },
             obscureText: _isObscure,
-            style: const TextStyle(color: Colors.black, fontFamily: 'OpenSans'),
+            style: const TextStyle(fontFamily: 'OpenSans'),
             controller: passwordController,
             decoration: InputDecoration(
               suffixIcon: IconButton(
@@ -101,10 +98,9 @@ class _userLoginScreen extends State<userLoginScreen>
               filled: true,
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: const Icon(Icons.lock, color: Colors.blue),
+              prefixIcon: const Icon(Icons.lock),
               hintText: 'Enter Your Password',
-              hintStyle: const TextStyle(color: Colors.black38),
-              errorStyle: const TextStyle(fontSize: 15),
+              errorStyle: const TextStyle(fontSize: 15) ,
             ),
           ),
         ],
@@ -116,15 +112,12 @@ class _userLoginScreen extends State<userLoginScreen>
     return Container(
       alignment: Alignment.centerRight,
       child: TextButton(
-        style:
-            TextButton.styleFrom(textStyle: const TextStyle(color: Colors.red)),
         onPressed: () {
           showForgetPasswordDialog(context);
         },
         child: const Text(
           'Forgot Password?',
-          style: TextStyle(
-              fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15.0),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0),
         ),
       ),
     );
@@ -180,7 +173,7 @@ class _userLoginScreen extends State<userLoginScreen>
       children: <Widget>[
         Text(
           '-------------------- OR --------------------',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 20.0),
         Text(
@@ -199,7 +192,6 @@ class _userLoginScreen extends State<userLoginScreen>
         width: 60.0,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white,
           boxShadow: const [
             BoxShadow(
               color: Colors.black26,
@@ -253,17 +245,11 @@ class _userLoginScreen extends State<userLoginScreen>
           children: [
             TextSpan(
               text: 'Don\'t have an Account? ',
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
             TextSpan(
               text: 'Sign Up',
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -291,8 +277,7 @@ class _userLoginScreen extends State<userLoginScreen>
                 const SizedBox(height: defaultPadding),
                 TextFormField(
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(
-                      color: Colors.black, fontFamily: 'OpenSans'),
+                  style: const TextStyle(fontFamily: 'OpenSans'),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please Enter Email';
@@ -307,9 +292,8 @@ class _userLoginScreen extends State<userLoginScreen>
                     filled: true,
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.only(top: 14.0),
-                    prefixIcon: Icon(Icons.email, color: Colors.blue),
+                    prefixIcon: Icon(Icons.email),
                     hintText: 'Enter Your Email',
-                    hintStyle: TextStyle(color: Colors.black38),
                     errorStyle: TextStyle(fontSize: 15),
                   ),
                 ),
@@ -333,30 +317,14 @@ class _userLoginScreen extends State<userLoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blueGrey,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: Stack(
             children: <Widget>[
-              Container(
-                height: double.infinity,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.white12,
-                      Colors.white12,
-                      Colors.white12,
-                      Colors.white12,
-                    ],
-                    stops: [0.1, 0.4, 0.6, 0.9],
-                  ),
-                ),
-              ),
-              Container(
+              SizedBox(
                 height: double.infinity,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -370,7 +338,6 @@ class _userLoginScreen extends State<userLoginScreen>
                           const Text(
                             'Sign In',
                             style: TextStyle(
-                              color: Colors.black,
                               fontFamily: 'OpenSans',
                               fontSize: 30.0,
                               fontWeight: FontWeight.bold,

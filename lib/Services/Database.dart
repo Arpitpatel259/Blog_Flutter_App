@@ -1,5 +1,8 @@
+// ignore_for_file: avoid_print
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class DatabaseMethod {
   Future addUser(String userId, Map<String, dynamic> userInfo) {
@@ -18,9 +21,12 @@ class DatabaseMethod {
         return doc.data() as Map<String, dynamic>;
       }).toList();
 
+      print(blogList);
       return blogList;
     } catch (e) {
-      print('Error fetching blog data: $e');
+      if (kDebugMode) {
+        print('Error fetching blog data: $e');
+      }
       return [];
     }
   }

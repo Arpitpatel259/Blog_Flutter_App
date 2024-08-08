@@ -3,12 +3,10 @@
 import 'dart:convert';
 
 import 'package:blog/Screens/editPostedBlog.dart';
-import 'package:blog/Screens/postBlogScreen.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Services/Database.dart';
 import 'BlogDetailScreen.dart';
@@ -102,7 +100,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) =>
-                                                EditBlogScreen(blog: blog!)),
+                                                EditBlogScreen(blog: blog)),
                                       );
                                     },
                                   ),

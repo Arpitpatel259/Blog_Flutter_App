@@ -13,6 +13,7 @@ final kBoxDecorationStyle = BoxDecoration(
 );
 
 TextStyle kLabelStyle = const TextStyle(
+
   color: Colors.white,
   fontWeight: FontWeight.bold,
   fontFamily: 'OpenSans',

@@ -2,9 +2,7 @@ import 'package:blog/Authentication/userLogin.dart';
 import 'package:blog/Screens/showMyBlogPost.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/main.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,7 +75,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           TextSpan(
-                            text: name ?? 'John Due',
+                            text: name,
                             style: const TextStyle(
                               fontWeight: FontWeight.normal,
                               fontFamily: 'SF Pro',
@@ -96,7 +94,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                         ),
                         children: [
                           TextSpan(
-                            text: email ?? 'example@gmail.com',
+                            text: email,
                             style: const TextStyle(
                               fontWeight: FontWeight.normal,
                               fontFamily: 'SF Pro',
@@ -126,10 +124,10 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                                     width: 100,
                                     height: 100,
                                   )
-                                : Container(
+                                : const SizedBox(
                                     width: 100,
                                     height: 100,
-                                    child: const Center(
+                                    child: Center(
                                       child: Icon(
                                         Icons.account_circle,
                                         size: 72, // adjust size as needed
@@ -254,8 +252,8 @@ class _NavigationDrawer extends State<NavigationDrawers> {
           showPlatformDialog<String>(
             context: context,
             builder: (BuildContext context) => PlatformAlertDialog(
-              title: Text('Alert'),
-              content: Text('Are you sure you want to logout from this app?'),
+              title: const Text('Alert'),
+              content: const Text('Are you sure you want to logout from this app?'),
               actions: <Widget>[
                 PlatformDialogAction(
                   child: PlatformText('Cancel'),

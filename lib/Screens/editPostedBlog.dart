@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:blog/Services/Auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../main.dart';
 
 class EditBlogScreen extends StatefulWidget {
   final Map<String, dynamic> blog; // Blog data passed from previous screen
@@ -47,13 +48,28 @@ class _EditBlogScreenState extends State<EditBlogScreen> {
   }
 
   void _saveChanges() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      // Prevents dismissal when tapping outside
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     await AuthMethods().updateBlog(
       widget.blog['id'],
       _authorController.text,
       _titleController.text,
       _contentController.text,
       _mediaFile,
+      widget.blog['imageBase64'],
       context,
+    );
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const MainPage()),
+          (Route<dynamic> route) => false,
     );
   }
 
@@ -88,19 +104,19 @@ class _EditBlogScreenState extends State<EditBlogScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 200.0,
-                    child: widget.blog['imageBase64'] != null
+                    child: _mediaFile == null
                         ? Image.memory(
-                            base64Decode(widget.blog['imageBase64']),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: 200.0,
-                          )
+                      base64Decode(widget.blog['imageBase64']),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200.0,
+                    )
                         : Image.file(
-                            File(_mediaFile!.path),
-                            height: 200.0,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
+                      File(_mediaFile!.path),
+                      height: 200.0,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Positioned(
                     top: 8.0,

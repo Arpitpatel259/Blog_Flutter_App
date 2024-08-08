@@ -2,15 +2,18 @@
 
 import 'dart:async';
 
-import 'package:blog/Screens/postBlogScreen.dart';
+import 'package:blog/Screens/PostEditor.dart';
 import 'package:blog/Screens/splashScreen.dart';
 import 'package:blog/Utilities/cardwidgets.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'Authentication/userLogin.dart';
 import 'Screens/NavigationDrawers.dart';
 import 'firebase_options.dart';
 
@@ -62,10 +65,131 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const SplashScreen(),
+      home: const Home(),
     );
   }
 }
+
+class Home extends StatefulWidget {
+  const Home({Key? key}) : super(key: key);
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home>
+    with SingleTickerProviderStateMixin {
+
+  @override
+  void initState() {
+    super.initState();
+
+    Timer(const Duration(seconds: 3), () {
+      check_if_already_login(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> check_if_already_login(BuildContext context) async {
+    try {
+      // Initialize Firebase
+      if (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } else {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.web,
+        );
+      }
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      bool? isLoggedIn = prefs.getBool('isLoggedIn');
+
+      if (isLoggedIn == true) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+              (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking login status: $e');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              'An error occurred while checking login status. Please try again.'),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {},
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            decoration: const BoxDecoration(color: Colors.blueGrey),
+          ),
+          const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: 50.0,
+                      child: Icon(
+                        Icons.work,
+                        color: Colors.black,
+                        size: 50.0,
+                      ),
+                    ),
+                    Padding(padding: EdgeInsets.only(top: 10.0)),
+                    Text(
+                      "Find Your Own Blogs",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24.0,
+                          color: Colors.black),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+}
+
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -102,7 +226,8 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     subscription.cancel();
-    //super.dispose();
+    // Ensure you call super.dispose() to clean up resources
+    super.dispose();
   }
 
   showDialogBox() => showCupertinoDialog<String>(
@@ -131,7 +256,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: NavigationDrawers(),
+      drawer: const NavigationDrawers(),
       appBar: AppBar(
         title: const Row(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -157,7 +282,7 @@ class _MainPageState extends State<MainPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => PostBlogScreen()),
+            MaterialPageRoute(builder: (context) => const PostEditor()),
           );
         },
         backgroundColor: Colors.blue,
