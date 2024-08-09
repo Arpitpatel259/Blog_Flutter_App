@@ -2,9 +2,10 @@
 
 import 'dart:convert';
 
-import 'package:blog/Screens/editPostedBlog.dart';
+import 'package:blog/Screens/EditPostBlogs.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -23,6 +24,8 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   final DatabaseMethod _dbMethods = DatabaseMethod();
   final AuthMethods _authMethods = AuthMethods();
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +43,15 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Blogs'),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blueGrey, Colors.blueGrey],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _refreshBlogs,
@@ -62,6 +74,8 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                   final DateTime dateTime = timestamp.toDate();
                   final String formattedDate =
                       DateFormat.yMMMd().add_jm().format(dateTime);
+                  final authorImage = _auth.currentUser?.photoURL;
+
                   return Card(
                     margin: const EdgeInsets.all(8.0),
                     child: Padding(
@@ -71,10 +85,19 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                         children: [
                           Row(
                             children: [
-                              const CircleAvatar(
-                                radius: 15,
-                                backgroundColor: Colors.yellow,
-                                child: Icon(Icons.person, color: Colors.white),
+                              ClipOval(
+                                child: authorImage != null
+                                    ? Image.network(
+                                  authorImage,
+                                  fit: BoxFit.cover,
+                                  width: 50,
+                                  height: 50,
+                                )
+                                    : const Icon(
+                                  Icons.account_circle,
+                                  size: 50,
+                                  color: Colors.white,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -96,11 +119,11 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         color: Colors.red),
                                     onPressed: () {
                                       print("Edit Clicked");
-                                      Navigator.pushReplacement(
+                                      Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) =>
-                                                EditBlogScreen(blog: blog)),
+                                                PostEditor(isEdit: true, blog: blog)),
                                       );
                                     },
                                   ),
@@ -150,7 +173,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            BlogDetailScreen(blog: blog),
+                                            BlogDetailScreen(blog: blog,image: authorImage,),
                                       ),
                                     );
                                   },

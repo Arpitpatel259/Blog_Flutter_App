@@ -1,27 +1,28 @@
 import 'dart:convert';
 
-import 'package:blog/Screens/BlogDetailScreen.dart';
 import 'package:blog/Services/Database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+
+import '../Screens/BlogDetailScreen.dart';
 
 class BlogList extends StatefulWidget {
   const BlogList({super.key});
 
   @override
-  _BlogListState createState() => _BlogListState();
+  State<BlogList> createState() => _BlogListState();
 }
 
 class _BlogListState extends State<BlogList> {
-  late Future<List<Map<String, dynamic>>> _futureBlogs;
   final DatabaseMethod _authMethods = DatabaseMethod();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _blogList = [];
+  final Map<String, String> _profileImages = {}; // Store profile images
 
   @override
   void initState() {
@@ -34,6 +35,10 @@ class _BlogListState extends State<BlogList> {
     setState(() {
       _blogList = blogs;
     });
+    // Fetch profile images after blogs are loaded
+    for (var blog in blogs) {
+      await _getImage(blog['userId']);
+    }
   }
 
   Future<void> _toggleLike(String blogId, bool isLiked) async {
@@ -104,6 +109,21 @@ class _BlogListState extends State<BlogList> {
     }
   }
 
+  Future<void> _getImage(String userId) async {
+    if (_profileImages.containsKey(userId)) {
+      return; // Image already fetched
+    }
+
+    DocumentSnapshot userSnapshot =
+        await FirebaseFirestore.instance.collection('User').doc(userId).get();
+
+    if (userSnapshot.exists) {
+      setState(() {
+        _profileImages[userId] = userSnapshot['imgUrl'];
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,6 +143,10 @@ class _BlogListState extends State<BlogList> {
             final bool isLiked = likes.contains(userName);
             final int likeCount = likers.length;
 
+            // Get author image
+            final String authorId = blog['userId'];
+            final String? authorImage = _profileImages[authorId];
+
             return GestureDetector(
               onTap: () {},
               child: Card(
@@ -137,10 +161,19 @@ class _BlogListState extends State<BlogList> {
                         children: [
                           Row(
                             children: [
-                              const CircleAvatar(
-                                radius: 15,
-                                backgroundColor: Colors.yellow,
-                                child: Icon(Icons.person, color: Colors.white),
+                              ClipOval(
+                                child: authorImage != null
+                                    ? Image.network(
+                                        authorImage,
+                                        fit: BoxFit.cover,
+                                        width: 50,
+                                        height: 50,
+                                      )
+                                    : const Icon(
+                                        Icons.account_circle,
+                                        size: 50,
+                                        color: Colors.white,
+                                      ),
                               ),
                               const SizedBox(width: 8),
                               Column(
@@ -189,7 +222,7 @@ class _BlogListState extends State<BlogList> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        BlogDetailScreen(blog: blog),
+                                        BlogDetailScreen(blog: blog,image: authorImage),
                                   ),
                                 );
                               },
@@ -257,14 +290,6 @@ class _BlogListState extends State<BlogList> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (likers.isNotEmpty)
-                        Text(
-                          "Liked by: ${likers.join(', ')}",
-                          style: const TextStyle(
-                            fontSize: 12.0,
-                            color: Colors.grey,
-                          ),
-                        ),
                       const SizedBox(height: 5.0),
                       Text(
                         formattedDate,

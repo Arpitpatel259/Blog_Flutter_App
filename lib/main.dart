@@ -2,18 +2,15 @@
 
 import 'dart:async';
 
-import 'package:blog/Screens/PostEditor.dart';
-import 'package:blog/Screens/splashScreen.dart';
+import 'package:blog/Screens/EditPostBlogs.dart';
+import 'package:blog/Services/Auth.dart';
 import 'package:blog/Utilities/cardwidgets.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'Authentication/userLogin.dart';
 import 'Screens/NavigationDrawers.dart';
 import 'firebase_options.dart';
 
@@ -27,11 +24,15 @@ Future<void> main() async {
     androidProvider: AndroidProvider.debug,
     appleProvider: AppleProvider.appAttest,
   );
-  runApp(const MyApp());
+  final AuthMethods authMethods = AuthMethods();
+  Widget homeWidget = await authMethods.checkIfAlreadyLogin();
+  runApp(MyApp(homeWidget: homeWidget));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Widget homeWidget;
+
+  const MyApp({super.key, required this.homeWidget});
 
   @override
   Widget build(BuildContext context) {
@@ -65,131 +66,10 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const Home(),
+      home: homeWidget,
     );
   }
 }
-
-class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
-
-  @override
-  State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home>
-    with SingleTickerProviderStateMixin {
-
-  @override
-  void initState() {
-    super.initState();
-
-    Timer(const Duration(seconds: 3), () {
-      check_if_already_login(context);
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  Future<void> check_if_already_login(BuildContext context) async {
-    try {
-      // Initialize Firebase
-      if (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      } else {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.web,
-        );
-      }
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool? isLoggedIn = prefs.getBool('isLoggedIn');
-
-      if (isLoggedIn == true) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-              (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const SplashScreen()),
-              (route) => false,
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error checking login status: $e');
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              'An error occurred while checking login status. Please try again.'),
-          backgroundColor: Colors.teal,
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            disabledTextColor: Colors.white,
-            textColor: Colors.yellow,
-            onPressed: () {},
-          ),
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: const BoxDecoration(color: Colors.blueGrey),
-          ),
-          const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.white,
-                      radius: 50.0,
-                      child: Icon(
-                        Icons.work,
-                        color: Colors.black,
-                        size: 50.0,
-                      ),
-                    ),
-                    Padding(padding: EdgeInsets.only(top: 10.0)),
-                    Text(
-                      "Find Your Own Blogs",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24.0,
-                          color: Colors.black),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-}
-
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -270,7 +150,7 @@ class _MainPageState extends State<MainPage> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.blueAccent],
+              colors: [Colors.blueGrey, Colors.blueGrey],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -282,11 +162,14 @@ class _MainPageState extends State<MainPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const PostEditor()),
+            MaterialPageRoute(
+                builder: (context) => const PostEditor(
+                      isEdit: false,
+                    )),
           );
         },
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.blueGrey,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

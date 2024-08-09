@@ -1,4 +1,4 @@
-import 'package:blog/Authentication/userLogin.dart';
+import 'package:blog/Authentication/UserLoginScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -257,7 +257,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const userLoginScreen()),
+                              builder: (context) => const UserLoginScreen()),
                         );
                       },
                       style: ElevatedButton.styleFrom(

@@ -53,6 +53,7 @@ dependencies:
   intl: ^0.18.1
   flutter_quill: ^8.0.0
   video_player: ^2.8.5
+  share_plus: ^7.2.2
 
 
 dev_dependencies:

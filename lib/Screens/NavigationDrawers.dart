@@ -1,5 +1,6 @@
-import 'package:blog/Authentication/userLogin.dart';
-import 'package:blog/Screens/showMyBlogPost.dart';
+import 'package:blog/Authentication/UserLoginScreen.dart';
+import 'package:blog/Screens/showMyBlogs.dart';
+import 'package:blog/Screens/splashScreen.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/main.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
       child: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blueAccent, Colors.blueGrey],
+            colors: [Colors.blueGrey, Colors.blueGrey],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -59,7 +60,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                   const SizedBox(height: 15),
                   UserAccountsDrawerHeader(
                     decoration: const BoxDecoration(
-                      color: Colors.transparent,
+                      color: Colors.blueGrey,
                     ),
                     accountName: RichText(
                       text: TextSpan(
@@ -162,23 +163,13 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                   ),
                   const SizedBox(height: 24),
                   buildMenuItem(
-                    text: 'About Us',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontFamily: 'SF Pro',
-                    ),
-                    icon: Icons.info_outline,
-                    onClicked: () => selectedItems(context, 4),
-                  ),
-                  const SizedBox(height: 24),
-                  buildMenuItem(
                     text: 'Logout',
                     style: const TextStyle(
                       fontWeight: FontWeight.normal,
                       fontFamily: 'SF Pro',
                     ),
                     icon: Icons.logout_sharp,
-                    onClicked: () => selectedItems(context, 5),
+                    onClicked: () => selectedItems(context, 2),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -228,32 +219,12 @@ class _NavigationDrawer extends State<NavigationDrawers> {
         }
       case 2:
         {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const userLoginScreen()),
-          );
-          break;
-        }
-      case 3:
-        {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const userLoginScreen()),
-          );
-          break;
-        }
-      case 4:
-        {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const userLoginScreen()),
-          );
-          break;
-        }
-      case 5:
-        {
           showPlatformDialog<String>(
             context: context,
             builder: (BuildContext context) => PlatformAlertDialog(
               title: const Text('Alert'),
-              content: const Text('Are you sure you want to logout from this app?'),
+              content:
+                  const Text('Are you sure you want to logout from this app?'),
               actions: <Widget>[
                 PlatformDialogAction(
                   child: PlatformText('Cancel'),
@@ -272,7 +243,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                       context,
                       platformPageRoute(
                         context: context,
-                        builder: (context) => const userLoginScreen(),
+                        builder: (context) => const SplashScreen(),
                       ),
                     );
                   },

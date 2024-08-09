@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
+@immutable
 class BlogDetailScreen extends StatelessWidget {
   final Map<String, dynamic> blog;
   String? image;
@@ -18,7 +20,6 @@ class BlogDetailScreen extends StatelessWidget {
     final DateTime dateTime = timestamp.toDate();
     final String formattedDate = DateFormat.yMMMd().add_jm().format(dateTime);
 
-    final List<dynamic> likes = blog['likes'] ?? [];
     final List<dynamic> likers = blog['likers'] ?? [];
     final int likeCount = likers.length;
 
@@ -47,7 +48,12 @@ class BlogDetailScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              // Action when the icon is pressed
+              final String blogUrl = blog['content'] ?? '';
+              final String blogTitle = blog['title'] ?? '';
+
+              final String shareText = '$blogTitle\nRead more at: $blogUrl';
+
+              Share.share(shareText);
             },
           ),
         ],
@@ -61,12 +67,13 @@ class BlogDetailScreen extends StatelessWidget {
               blog['title'] ?? '',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8.0),
             Text(
               "Published by: ${blog['author'] ?? ''}",
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             Text(
-              formattedDate ?? '',
+              formattedDate,
             ),
             const SizedBox(height: 16),
             Container(
@@ -75,10 +82,17 @@ class BlogDetailScreen extends StatelessWidget {
                 border: Border.all(),
                 borderRadius: BorderRadius.circular(8.0),
               ),
-              child: Text(
+              child: SelectableText(
                 blog['content'] ?? '',
+                style: const TextStyle(
+                  fontSize: 20.0, // Increase the font size
+                  height: 2, // Adjust the line height for better readability
+                  // Align text properly
+                ),
+                textAlign: TextAlign.justify,
               ),
             ),
+
             const SizedBox(height: 16),
             blog['imageBase64'] != null
                 ? Container(

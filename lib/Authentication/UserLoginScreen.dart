@@ -1,21 +1,21 @@
 // ignore_for_file: file_names, non_constant_identifier_names, use_build_context_synchronously, prefer_typing_uninitialized_variables, avoid_print, unnecessary_null_comparison
 
-import 'package:blog/Authentication/userRegister.dart';
+import 'package:blog/Authentication/UserRegisterScreen.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/Utilities/constant.dart';
 import 'package:blog/Utilities/validation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class userLoginScreen extends StatefulWidget {
-  const userLoginScreen({Key? key}) : super(key: key);
+class UserLoginScreen extends StatefulWidget {
+  const UserLoginScreen({Key? key}) : super(key: key);
 
   @override
   // ignore: library_private_types_in_public_api
-  _userLoginScreen createState() => _userLoginScreen();
+  _UserLoginScreen createState() => _UserLoginScreen();
 }
 
-class _userLoginScreen extends State<userLoginScreen>
+class _UserLoginScreen extends State<UserLoginScreen>
     with SingleTickerProviderStateMixin {
   bool _isObscure = true;
   final _formKey = GlobalKey<FormState>();
@@ -237,7 +237,7 @@ class _userLoginScreen extends State<userLoginScreen>
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const userRegisterScreen()),
+          MaterialPageRoute(builder: (context) => const UserRegisterScreen()),
         );
       },
       child: RichText(

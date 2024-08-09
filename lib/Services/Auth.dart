@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:blog/Screens/splashScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:blog/Authentication/userLogin.dart';
+import 'package:blog/Authentication/UserLoginScreen.dart';
 import 'package:blog/Services/Database.dart';
 import 'package:blog/firebase_options.dart';
 import 'package:blog/main.dart';
@@ -34,6 +35,96 @@ class AuthMethods {
 
   Future<User?> getCurrentUser() async {
     return _auth.currentUser;
+  }
+
+/*  Future<void> checkIfAlreadyLogin(BuildContext context) async {
+    try {
+      // Initialize Firebase
+      if (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } else {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.web,
+        );
+      }
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      bool? isLoggedIn = prefs.getBool('isLoggedIn');
+
+      if (isLoggedIn == true) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+              (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking login status: $e');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              'An error occurred while checking login status. Please try again.'),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {},
+          ),
+        ),
+      );
+    }
+  }*/
+
+  Future<Widget> checkIfAlreadyLogin() async {
+    try {
+      // Initialize Firebase
+      if (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } else {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.web,
+        );
+      }
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      bool? isLoggedIn = prefs.getBool('isLoggedIn');
+
+      // Return the appropriate widget based on the login status
+      if (isLoggedIn == true) {
+        return const MainPage();
+      } else {
+        return const SplashScreen();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking login status: $e');
+      }
+      // Return an error screen or a default screen
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'An error occurred while checking login status. Please try again.',
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
   }
 
   // Google Login
@@ -296,7 +387,7 @@ class AuthMethods {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => const userLoginScreen()));
+          MaterialPageRoute(builder: (context) => const UserLoginScreen()));
     } catch (e) {
       if (kDebugMode) {
         print('Error during logout: $e');

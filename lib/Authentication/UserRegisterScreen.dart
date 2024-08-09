@@ -1,6 +1,4 @@
-// ignore_for_file: avoid_print, unnecessary_brace_in_string_interps
-
-import 'package:blog/Authentication/userLogin.dart';
+import 'package:blog/Authentication/UserLoginScreen.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/Utilities/validation.dart';
 import 'package:flutter/material.dart';
@@ -8,15 +6,15 @@ import 'package:flutter/services.dart';
 
 import '../Utilities/constant.dart';
 
-class userRegisterScreen extends StatefulWidget {
-  const userRegisterScreen({super.key});
+class UserRegisterScreen extends StatefulWidget {
+  const UserRegisterScreen({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _userRegisterScreen createState() => _userRegisterScreen();
+  _UserRegisterScreen createState() => _UserRegisterScreen();
 }
 
-class _userRegisterScreen extends State<userRegisterScreen> {
+class _UserRegisterScreen extends State<UserRegisterScreen> {
   var email = "";
   var password = "";
   var confirmPassword = "";
@@ -312,7 +310,7 @@ class _userRegisterScreen extends State<userRegisterScreen> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const userLoginScreen(),
+                    builder: (context) => const UserLoginScreen(),
                   ),
                 );
               }
@@ -410,7 +408,7 @@ class _userRegisterScreen extends State<userRegisterScreen> {
                       GestureDetector(
                         onTap: () {
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const userLoginScreen()),
+                            MaterialPageRoute(builder: (context) => const UserLoginScreen()),
                                 (Route<dynamic> route) => false,
                           );
                         },
