@@ -387,7 +387,7 @@ class AuthMethods {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => const UserLoginScreen()));
+          MaterialPageRoute(builder: (context) => const SplashScreen()));
     } catch (e) {
       if (kDebugMode) {
         print('Error during logout: $e');
