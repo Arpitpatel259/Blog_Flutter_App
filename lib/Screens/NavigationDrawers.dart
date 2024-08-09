@@ -1,4 +1,3 @@
-
 import 'package:blog/Screens/showMyBlogs.dart';
 import 'package:blog/Screens/splashScreen.dart';
 import 'package:blog/Services/Auth.dart';
@@ -6,6 +5,9 @@ import 'package:blog/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'AboutMePage.dart';
+import 'UserAppSetting.dart';
 
 class NavigationDrawers extends StatefulWidget {
   const NavigationDrawers({Key? key}) : super(key: key);
@@ -158,8 +160,27 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                       fontWeight: FontWeight.normal,
                       fontFamily: 'SF Pro',
                     ),
-                    icon: Icons.settings,
+                    icon: Icons.info_outlined,
                     onClicked: () => selectedItems(context, 1),
+                  ),
+                  const SizedBox(height: 24),
+                  buildMenuItem(
+                    text: 'Settings',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'SF Pro',
+                    ),
+                    icon: Icons.settings,
+                    onClicked: () => selectedItems(context, 2),
+                  ),const SizedBox(height: 24),
+                  buildMenuItem(
+                    text: 'About Us',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'SF Pro',
+                    ),
+                    icon: Icons.info_outline,
+                    onClicked: () => selectedItems(context, 3),
                   ),
                   const SizedBox(height: 24),
                   buildMenuItem(
@@ -169,7 +190,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                       fontFamily: 'SF Pro',
                     ),
                     icon: Icons.logout_sharp,
-                    onClicked: () => selectedItems(context, 2),
+                    onClicked: () => selectedItems(context, 4),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -218,6 +239,20 @@ class _NavigationDrawer extends State<NavigationDrawers> {
           break;
         }
       case 2:
+        {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const SettingPage()),
+          );
+          break;
+        }
+      case 3:
+        {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const AboutUsPage()),
+          );
+          break;
+        }
+      case 4:
         {
           showPlatformDialog<String>(
             context: context,
