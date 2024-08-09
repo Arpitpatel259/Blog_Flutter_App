@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:blog/Screens/splashScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:blog/Authentication/UserLoginScreen.dart';
 import 'package:blog/Services/Database.dart';
 import 'package:blog/firebase_options.dart';
 import 'package:blog/main.dart';
@@ -16,7 +15,6 @@ import 'package:firebase_core/firebase_core.dart';
 
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: kIsWeb
         ? '658979738135-d2llurejibm6rnlli6d870fpl8ach6qo.apps.googleusercontent.com'
