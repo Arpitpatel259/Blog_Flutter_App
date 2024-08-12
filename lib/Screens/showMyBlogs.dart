@@ -88,16 +88,16 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                               ClipOval(
                                 child: authorImage != null
                                     ? Image.network(
-                                  authorImage,
-                                  fit: BoxFit.cover,
-                                  width: 50,
-                                  height: 50,
-                                )
+                                        authorImage,
+                                        fit: BoxFit.cover,
+                                        width: 50,
+                                        height: 50,
+                                      )
                                     : const Icon(
-                                  Icons.account_circle,
-                                  size: 50,
-                                  color: Colors.white,
-                                ),
+                                        Icons.account_circle,
+                                        size: 50,
+                                        color: Colors.white,
+                                      ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -122,8 +122,8 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) =>
-                                                PostEditor(isEdit: true, blog: blog)),
+                                            builder: (context) => PostEditor(
+                                                isEdit: true, blog: blog)),
                                       );
                                     },
                                   ),
@@ -142,59 +142,48 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Stack(
-                            children: [
-                              SizedBox(
-                                width: double.infinity,
-                                height: 200.0,
-                                child: blog['imageBase64'] != null
-                                    ? Image.memory(
-                                        base64Decode(blog['imageBase64']),
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: 200.0,
-                                      )
-                                    : Container(
-                                        height: 200.0,
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Icon(Icons.image_outlined,
-                                              size: 48),
-                                        ),
-                                      ),
-                              ),
-                              Positioned(
-                                right: 16.0,
-                                left: 16.0,
-                                bottom: 16.0,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            BlogDetailScreen(blog: blog,image: authorImage,),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0, horizontal: 12.0),
-                                    color: Colors.black.withOpacity(0.5),
-                                    // Background with opacity
-                                    child: Text(
-                                      blog['title'] ?? 'Blog Title',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
+                          Text(
+                            blog['title'] ?? 'Blog Title',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Positioned(
+                            right: 16.0,
+                            left: 16.0,
+                            bottom: 16.0,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BlogDetailScreen(
+                                      blog: blog,
+                                      image: authorImage,
                                     ),
                                   ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0, horizontal: 12.0),
+                                color: Colors.black.withOpacity(0.5),
+                                child: Text(
+                                  blog['content'] ?? 'Blog Title',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 5,
+                                  overflow: TextOverflow.fade,
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Row(

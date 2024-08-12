@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../Screens/BlogDetailScreen.dart';
 
@@ -50,18 +51,13 @@ class _BlogListState extends State<BlogList> {
       _blogList = _blogList.map((blog) {
         if (blog['id'] == blogId) {
           final List<dynamic> likes = blog['likes'] ?? [];
-          final List<dynamic> likers = blog['likers'] ?? [];
           final bool newIsLiked = !isLiked;
           final List<dynamic> updatedLikes = newIsLiked
               ? [...likes, userName]
               : likes.where((name) => name != userName).toList();
-          final List<dynamic> updatedLikers = newIsLiked
-              ? [...likers, userName]
-              : likers.where((name) => name != userName).toList();
           return {
             ...blog,
             'likes': updatedLikes,
-            'likers': updatedLikers,
           };
         }
         return blog;
@@ -73,13 +69,11 @@ class _BlogListState extends State<BlogList> {
         // Remove like
         await _firestore.collection('Blog').doc(blogId).update({
           'likes': FieldValue.arrayRemove([userName]),
-          'likers': FieldValue.arrayRemove([userName]),
         });
       } else {
         // Add like
         await _firestore.collection('Blog').doc(blogId).update({
           'likes': FieldValue.arrayUnion([userName]),
-          'likers': FieldValue.arrayUnion([userName]),
         });
       }
     } catch (e) {
@@ -89,18 +83,13 @@ class _BlogListState extends State<BlogList> {
         _blogList = _blogList.map((blog) {
           if (blog['id'] == blogId) {
             final List<dynamic> likes = blog['likes'] ?? [];
-            final List<dynamic> likers = blog['likers'] ?? [];
             final bool revertedIsLiked = !isLiked;
             final List<dynamic> revertedLikes = revertedIsLiked
                 ? likes.where((name) => name != userName).toList()
                 : [...likes, userName];
-            final List<dynamic> revertedLikers = revertedIsLiked
-                ? likers.where((name) => name != userName).toList()
-                : [...likers, userName];
             return {
               ...blog,
               'likes': revertedLikes,
-              'likers': revertedLikers,
             };
           }
           return blog;
@@ -139,9 +128,8 @@ class _BlogListState extends State<BlogList> {
                 DateFormat.yMMMd().add_jm().format(dateTime);
             final userName = _auth.currentUser?.displayName ?? 'Anonymous';
             final List<dynamic> likes = blog['likes'] ?? [];
-            final List<dynamic> likers = blog['likers'] ?? [];
             final bool isLiked = likes.contains(userName);
-            final int likeCount = likers.length;
+            final int likeCount = likes.length;
 
             // Get author image
             final String authorId = blog['userId'];
@@ -191,58 +179,46 @@ class _BlogListState extends State<BlogList> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      Stack(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            height: 200.0,
-                            child: blog['imageBase64'] != null
-                                ? Image.memory(
-                                    base64Decode(blog['imageBase64']),
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: 200.0,
-                                  )
-                                : Container(
-                                    height: 200.0,
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child:
-                                          Icon(Icons.image_outlined, size: 48),
-                                    ),
-                                  ),
-                          ),
-                          Positioned(
-                            right: 16.0,
-                            left: 16.0,
-                            bottom: 16.0,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        BlogDetailScreen(blog: blog,image: authorImage),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0, horizontal: 12.0),
-                                color: Colors.black.withOpacity(0.5),
-                                child: Text(
-                                  blog['title'] ?? 'Blog Title',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
+                      Text(
+                        blog['title'] ?? 'Blog Title',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Positioned(
+                        right: 16.0,
+                        left: 16.0,
+                        bottom: 16.0,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BlogDetailScreen(
+                                    blog: blog, image: authorImage),
                               ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 12.0),
+                            color: Colors.black.withOpacity(0.5),
+                            child: Text(
+                              blog['content'] ?? 'Blog Title',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 5,
+                              overflow: TextOverflow.fade,
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -271,6 +247,8 @@ class _BlogListState extends State<BlogList> {
                                 icon: const Icon(Icons.send_outlined),
                                 onPressed: () {
                                   print("Share Clicked");
+                                  Share.share(
+                                      '${blog['title']}\nRead more at: ${blog['content']}');
                                 },
                               ),
                             ],
