@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 
 class PostEditor extends StatefulWidget {
@@ -120,9 +121,11 @@ class _PostEditorState extends State<PostEditor> {
                     if (_titleController.text.isNotEmpty &&
                         _contentController.text.isNotEmpty) {
                       if (_mediaFile != null) {
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
                         final name =
                             FirebaseAuth.instance.currentUser?.displayName ??
-                                'Anonymous';
+                                prefs.getString('name');
                         showDialog(
                           context: context,
                           barrierDismissible: false,
@@ -130,7 +133,7 @@ class _PostEditorState extends State<PostEditor> {
                               const Center(child: CircularProgressIndicator()),
                         );
                         await AuthMethods().uploadPost(
-                            name,
+                            name!,
                             _titleController.text,
                             _contentController.text,
                             _mediaFile,

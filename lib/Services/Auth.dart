@@ -8,7 +8,7 @@ import 'package:blog/firebase_options.dart';
 import 'package:blog/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kDebugMode, kIsWeb;
+    show Uint8List, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -34,57 +34,6 @@ class AuthMethods {
   Future<User?> getCurrentUser() async {
     return _auth.currentUser;
   }
-
-/*  Future<void> checkIfAlreadyLogin(BuildContext context) async {
-    try {
-      // Initialize Firebase
-      if (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      } else {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.web,
-        );
-      }
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool? isLoggedIn = prefs.getBool('isLoggedIn');
-
-      if (isLoggedIn == true) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-              (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const SplashScreen()),
-              (route) => false,
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error checking login status: $e');
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              'An error occurred while checking login status. Please try again.'),
-          backgroundColor: Colors.teal,
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            disabledTextColor: Colors.white,
-            textColor: Colors.yellow,
-            onPressed: () {},
-          ),
-        ),
-      );
-    }
-  }*/
 
   Future<Widget> checkIfAlreadyLogin() async {
     try {
@@ -228,6 +177,7 @@ class AuthMethods {
           'name': name,
           'email': email,
           'mobile': mobile,
+          'imgUrl': null,
           'password': password,
         };
 
@@ -264,7 +214,8 @@ class AuthMethods {
           await prefs.setBool('isLoggedIn', true);
           await prefs.setString("email", userSnapshot['email']);
           await prefs.setString("name", userSnapshot['name']);
-          await prefs.setString("id", userSnapshot.id);
+          await prefs.setString("userId", userSnapshot.id);
+          await prefs.setString("imgUrl", userSnapshot['imgUrl'] ?? "");
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -538,5 +489,37 @@ class AuthMethods {
     }
   }
 
+  Widget buildProfileImage(String? base64Image) {
+    if (base64Image == null || base64Image.isEmpty) {
+      // Handle the case where no image is provided
+      return const Icon(
+        Icons.account_circle,
+        size: 100,
+        color: Colors.grey,
+      );
+    }
 
+    try {
+      // Decode the Base64 string to bytes
+      Uint8List imageBytes = base64Decode(base64Image);
+
+      return ClipOval(
+        child: Image.memory(
+          imageBytes,
+          fit: BoxFit.cover,
+          width: 50,
+          height: 50,
+        ),
+      );
+    } catch (e) {
+      // Handle errors during decoding
+      print('Error decoding Base64 image: $e');
+      return Image.network(
+        base64Image,
+        fit: BoxFit.cover,
+        width: 50,
+        height: 50,
+      );
+    }
+  }
 }

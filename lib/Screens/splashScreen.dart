@@ -16,7 +16,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   final DatabaseMethod _authMethods = DatabaseMethod();
   List<Map<String, dynamic>> _blogList = [];
-  String pImage = "";
+  final Map<String, String> _profileImages = {};
   bool isLoading = true;
 
   @override
@@ -38,12 +38,16 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _getImage(String userId) async {
+    if (_profileImages.containsKey(userId)) {
+      return; // Image already fetched
+    }
+
     DocumentSnapshot userSnapshot =
-        await FirebaseFirestore.instance.collection('User').doc(userId).get();
+    await FirebaseFirestore.instance.collection('User').doc(userId).get();
 
     if (userSnapshot.exists) {
       setState(() {
-        pImage = userSnapshot['imgUrl'];
+        _profileImages[userId] = userSnapshot['imgUrl'];
       });
     }
   }
@@ -88,6 +92,10 @@ class _SplashScreenState extends State<SplashScreen> {
                       final String formattedDate =
                           DateFormat.yMMMd().add_jm().format(dateTime);
 
+                      // Get author image
+                      final String authorId = blog['userId'];
+                      final String? pImage = _profileImages[authorId];
+
                       return GestureDetector(
                         onTap: () {},
                         child: Card(
@@ -104,12 +112,21 @@ class _SplashScreenState extends State<SplashScreen> {
                                     Row(
                                       children: [
                                         ClipOval(
-                                          child: pImage.isNotEmpty
+                                          child: pImage != null
                                               ? Image.network(
                                                   pImage,
                                                   fit: BoxFit.cover,
                                                   width: 50,
                                                   height: 50,
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
+                                                    // Provide a fallback icon if the image fails to load
+                                                    return const Icon(
+                                                      Icons.account_circle,
+                                                      size: 50,
+                                                      color: Colors.white,
+                                                    );
+                                                  },
                                                 )
                                               : const Icon(
                                                   Icons.account_circle,

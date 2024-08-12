@@ -8,21 +8,39 @@ class BlogDetailScreen extends StatelessWidget {
   final Map<String, dynamic> blog;
   final String? image;
 
-  BlogDetailScreen({super.key, required this.blog, this.image});
+  const BlogDetailScreen({super.key, required this.blog, this.image});
 
   @override
   Widget build(BuildContext context) {
     final String formattedDate =
         DateFormat.yMMMd().add_jm().format(blog['timestamp'].toDate());
-    final int likeCount = (blog['likers'] ?? []).length;
+    final int likeCount = (blog['likes'] ?? []).length;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blueGrey,
         title: ClipOval(
           child: image != null
-              ? Image.network(image!, fit: BoxFit.cover, width: 50, height: 50)
-              : const Icon(Icons.account_circle, size: 50, color: Colors.white),
+              ? Image.network(
+                  image!,
+                  fit: BoxFit.cover,
+                  width: 50,
+                  height: 50,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Provide a fallback icon if the image fails to load
+                    return Image.memory(
+                      base64Decode(image!),
+                      fit: BoxFit.cover,
+                      width: 50,
+                      height: 50,
+                    );
+                  },
+                )
+              : const Icon(
+                  Icons.account_circle,
+                  size: 50,
+                  color: Colors.white,
+                ),
         ),
         actions: [
           IconButton(
@@ -46,19 +64,6 @@ class BlogDetailScreen extends StatelessWidget {
                 style:
                     const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             Text(formattedDate),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(5.0),
-              decoration: BoxDecoration(
-                border: Border.all(),
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: SelectableText(
-                blog['content'] ?? '',
-                style: const TextStyle(fontSize: 20.0, height: 2),
-                textAlign: TextAlign.justify,
-              ),
-            ),
             const SizedBox(height: 16),
             blog['imageBase64'] != null
                 ? Container(
@@ -95,11 +100,23 @@ class BlogDetailScreen extends StatelessWidget {
                         child: Icon(Icons.image_outlined, size: 48)),
                   ),
             const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(5.0),
+              decoration: BoxDecoration(
+                border: Border.all(),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: SelectableText(
+                blog['content'] ?? '',
+                style: const TextStyle(fontSize: 20.0, height: 2),
+                textAlign: TextAlign.justify,
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Text(
-                    likeCount == 1 ? '$likeCount Like' : '$likeCount Likes'),
+                Text(likeCount == 1 ? '$likeCount Like' : '$likeCount Likes'),
                 const Text("0 Comments"),
               ],
             ),

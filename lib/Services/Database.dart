@@ -14,8 +14,10 @@ class DatabaseMethod {
 
   Future<List<Map<String, dynamic>>> getAllBlogs() async {
     try {
-      final QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance.collection('Blog').get();
+      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Blog')
+          .orderBy('timestamp', descending: true)
+          .get();
 
       final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
         return doc.data() as Map<String, dynamic>;

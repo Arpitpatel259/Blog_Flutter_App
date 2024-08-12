@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:blog/Screens/showMyBlogs.dart';
 import 'package:blog/Screens/splashScreen.dart';
 import 'package:blog/Services/Auth.dart';
@@ -21,6 +24,7 @@ class _NavigationDrawer extends State<NavigationDrawers> {
 
   late SharedPreferences logindata;
   late bool newuser;
+  AuthMethods authMethods = AuthMethods();
 
   var email = "";
   var name = "";
@@ -106,40 +110,11 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                         ],
                       ),
                     ),
-                    currentAccountPicture: GestureDetector(
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) => _buildProfileModal(context),
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                        );
-                      },
-                      child: Hero(
-                        tag: 'profile-picture',
-                        child: CircleAvatar(
-                          radius: 50,
-                          child: ClipOval(
-                            child: pImage.isNotEmpty
-                                ? Image.network(
-                                    pImage,
-                                    fit: BoxFit.cover,
-                                    width: 100,
-                                    height: 100,
-                                  )
-                                : const SizedBox(
-                                    width: 100,
-                                    height: 100,
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.account_circle,
-                                        size: 72, // adjust size as needed
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
+                    currentAccountPicture: Hero(
+                      tag: 'profile-picture',
+                      child: CircleAvatar(
+                        radius: 100,
+                        child: authMethods.buildProfileImage(pImage),
                       ),
                     ),
                   ),
@@ -172,7 +147,8 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                     ),
                     icon: Icons.settings,
                     onClicked: () => selectedItems(context, 2),
-                  ),const SizedBox(height: 24),
+                  ),
+                  const SizedBox(height: 24),
                   buildMenuItem(
                     text: 'About Us',
                     style: const TextStyle(
@@ -289,37 +265,5 @@ class _NavigationDrawer extends State<NavigationDrawers> {
           break;
         }
     }
-  }
-
-  Widget _buildProfileModal(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).pop(),
-      child: Container(
-        color: Colors.black.withOpacity(0.5),
-        child: Center(
-          child: Hero(
-            tag: 'profile-picture',
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeIn,
-              child: ClipOval(
-                child: pImage.isNotEmpty
-                    ? Image.network(
-                        pImage,
-                        fit: BoxFit.cover,
-                        width: 300,
-                        height: 300,
-                      )
-                    : const Icon(
-                        Icons.account_circle,
-                        size: 250,
-                        color: Colors.white,
-                      ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

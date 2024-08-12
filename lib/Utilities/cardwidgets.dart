@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:blog/Services/Auth.dart';
 import 'package:blog/Services/Database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Screens/BlogDetailScreen.dart';
 
@@ -18,12 +21,12 @@ class BlogList extends StatefulWidget {
 
 class _BlogListState extends State<BlogList> {
   final DatabaseMethod _authMethods = DatabaseMethod();
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _blogList = [];
-  final Map<String, String> _profileImages = {}; // Store profile images
+  final Map<String, String> _profileImages = {};
+  AuthMethods authMethods = AuthMethods();
 
   @override
   void initState() {
@@ -113,6 +116,173 @@ class _BlogListState extends State<BlogList> {
     }
   }
 
+  Future<void> _addComment(String blogId, String commentText) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final user = _auth.currentUser!;
+    final userName = user.displayName ?? prefs.getString('name');
+    final userId = user.uid;
+
+    try {
+      await _firestore
+          .collection('Blog')
+          .doc(blogId)
+          .collection('comments')
+          .add({
+        'userName': userName,
+        'commentText': commentText,
+        'userId': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print("Error adding comment: $e");
+    }
+  }
+
+  void _showCommentBottomSheet(String blogId) {
+    final TextEditingController commentController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              // Set to min to dynamically adjust
+              children: [
+                Flexible(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('Blog')
+                        .doc(blogId)
+                        .collection('comments')
+                        .orderBy('timestamp', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text('No comments yet.'));
+                      }
+
+                      final comments = snapshot.data!.docs;
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        // Allows the list to take only needed space
+                        physics: const NeverScrollableScrollPhysics(),
+                        // Prevents scrolling within the bottom sheet
+                        itemCount: comments.length,
+                        itemBuilder: (context, index) {
+                          final commentData =
+                              comments[index].data() as Map<String, dynamic>;
+                          final userName =
+                              commentData['userName'] ?? 'Anonymous';
+                          final commentText = commentData['commentText'] ?? '';
+
+                          // Check if timestamp exists and is not null
+                          final timestamp = commentData['timestamp'];
+                          final DateTime? dateTime = timestamp != null
+                              ? (timestamp as Timestamp).toDate()
+                              : null;
+                          final String formattedDate = dateTime != null
+                              ? DateFormat.yMMMd().format(dateTime)
+                              : '';
+
+                          // Get author image
+                          final String? authorId = commentData['userId'];
+                          final String? authorImage = _profileImages[authorId];
+
+                          return ListTile(
+                            leading: ClipOval(
+                              child: Container(
+                                color: Colors.blueGrey,
+                                child: authorImage != null
+                                    ? Image.network(
+                                        authorImage,
+                                        fit: BoxFit.cover,
+                                        width: 50,
+                                        height: 50,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          // Provide a fallback icon if the image fails to load
+                                          return const Icon(
+                                            Icons.account_circle,
+                                            size: 50,
+                                            color: Colors.white,
+                                          );
+                                        },
+                                      )
+                                    : const Icon(
+                                        Icons.account_circle,
+                                        size: 50,
+                                        color: Colors.white,
+                                      ),
+                              ),
+                            ),
+                            title: Text(
+                              userName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            subtitle: Text(
+                              commentText,
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                            trailing: Text(
+                              formattedDate,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: commentController,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter your comment',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: () {
+                        if (commentController.text.isNotEmpty) {
+                          _addComment(blogId, commentController.text);
+                          commentController.clear();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,6 +304,7 @@ class _BlogListState extends State<BlogList> {
             // Get author image
             final String authorId = blog['userId'];
             final String? authorImage = _profileImages[authorId];
+            authMethods.buildProfileImage(authorImage);
 
             return GestureDetector(
               onTap: () {},
@@ -150,18 +321,8 @@ class _BlogListState extends State<BlogList> {
                           Row(
                             children: [
                               ClipOval(
-                                child: authorImage != null
-                                    ? Image.network(
-                                        authorImage,
-                                        fit: BoxFit.cover,
-                                        width: 50,
-                                        height: 50,
-                                      )
-                                    : const Icon(
-                                        Icons.account_circle,
-                                        size: 50,
-                                        color: Colors.white,
-                                      ),
+                                child:
+                                    authMethods.buildProfileImage(authorImage),
                               ),
                               const SizedBox(width: 8),
                               Column(
@@ -188,10 +349,8 @@ class _BlogListState extends State<BlogList> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      Positioned(
-                        right: 16.0,
-                        left: 16.0,
-                        bottom: 16.0,
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
                         child: GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -240,13 +399,12 @@ class _BlogListState extends State<BlogList> {
                               IconButton(
                                 icon: const Icon(Icons.mode_comment_outlined),
                                 onPressed: () {
-                                  print("Comment Clicked");
+                                  _showCommentBottomSheet(blog['id']);
                                 },
                               ),
                               IconButton(
                                 icon: const Icon(Icons.send_outlined),
                                 onPressed: () {
-                                  print("Share Clicked");
                                   Share.share(
                                       '${blog['title']}\nRead more at: ${blog['content']}');
                                 },
@@ -255,9 +413,7 @@ class _BlogListState extends State<BlogList> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.bookmark_border_outlined),
-                            onPressed: () {
-                              print("Saved Clicked");
-                            },
+                            onPressed: () {},
                           ),
                         ],
                       ),

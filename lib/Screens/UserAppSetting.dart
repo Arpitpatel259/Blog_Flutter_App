@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:blog/Services/Auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,14 +16,14 @@ class SettingPage extends StatefulWidget {
 
 class _SettingPageState extends State<SettingPage> {
   late SharedPreferences logindata;
-  late String userId; // Added for userId
+  late String userId;
+  late String profileImageUrl;
+  late String profileImage;
 
+  AuthMethods authMethods = AuthMethods();
   var email = "";
   var name = "";
-  var enrollment = "";
-  var mobileno = "";
-  var organization = "";
-  late String profileImageUrl = ""; // Holds the current profile image URL
+  File? _mediaFile;
 
   @override
   void initState() {
@@ -34,32 +36,70 @@ class _SettingPageState extends State<SettingPage> {
     userId = logindata.getString("userId") ?? ""; // Initialize userId
     name = logindata.getString("name") ?? "";
     email = logindata.getString("email") ?? "";
-    enrollment = logindata.getString("enrollment") ?? "";
-    mobileno = logindata.getString("mobile") ?? "";
-    organization = logindata.getString("organization") ?? "";
-
-    // Retrieve the profile image URL from SharedPreferences
     profileImageUrl = logindata.getString("imgUrl") ?? "";
 
     setState(() {});
   }
 
-  File? _imageFile;
+  Future<File?> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    return pickedFile != null ? File(pickedFile.path) : null;
+  }
 
-  void _pickImage() async {
-    final ImagePicker _picker = ImagePicker();
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+  Future<void> _uploadProfileImage(File? image) async {
+    // Get userId from SharedPreferences or other storage
+    String userId = logindata.getString("userId") ?? "";
+    print(userId);
 
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
+    if (userId.isEmpty) {
+      print('Error: User ID is null or empty.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User ID is not set.')),
+      );
+      return; // Exit early if userId is not valid
+    }
+
+    // Ensure the image file is not null
+    if (image == null) {
+      print('Error: Image file is null.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No image file selected.')),
+      );
+      return; // Exit early if image is null
+    }
+
+    try {
+      // Convert image to Base64
+      String base64Image = await _convertImageToBase64(image);
+
+      // Update Firestore with the Base64-encoded image
+      await FirebaseFirestore.instance.collection('User').doc(userId).update({
+        'imgUrl': base64Image,
       });
 
-      // Call function to upload image to Firebase Storage
-      await _uploadProfileImage();
-    } else {
-      print('No image selected.');
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('imgUrl', base64Image);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile image uploaded successfully')),
+      );
+
+      setState(() {
+        profileImageUrl = base64Image;
+      });
+    } catch (e) {
+      print('Error uploading profile image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload profile image')),
+      );
     }
+  }
+
+  Future<String> _convertImageToBase64(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    return base64Encode(bytes);
   }
 
   @override
@@ -108,25 +148,21 @@ class _SettingPageState extends State<SettingPage> {
                   child: Column(
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          _pickImage();
+                        onTap: () async {
+                          File? imageFile = await _pickImage();
+                          setState(() async {
+                            _mediaFile = imageFile;
+                            _uploadProfileImage(_mediaFile);
+                          });
                         },
                         child: CircleAvatar(
                           radius: 50,
-                          backgroundImage: _imageFile != null
-                              ? FileImage(_imageFile!)
-                              : (profileImageUrl.isNotEmpty
-                              ? NetworkImage(profileImageUrl)
-                              : AssetImage('assets/images/logo.png')
-                          as ImageProvider),
+                          child: authMethods.buildProfileImage(profileImageUrl),
                         ),
                       ),
                       const SizedBox(height: 20),
                       buildProfileItem('Name', name),
                       buildProfileItem('Email', email),
-                      buildProfileItem('Mobile No', mobileno),
-                      buildProfileItem('Enrollment ID', enrollment),
-                      buildProfileItem('Organization', organization),
                     ],
                   ),
                 ),
@@ -213,38 +249,6 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Future<void> _uploadProfileImage() async {
-    String fileName = userId + '_profile.jpg'; // Unique file name for the user's profile image
-    Reference storageRef =
-    FirebaseStorage.instance.ref().child('profile_images/$fileName');
-
-    try {
-      // Upload image to Firebase Storage
-      UploadTask uploadTask = storageRef.putFile(_imageFile!);
-      TaskSnapshot snapshot = await uploadTask.whenComplete(() {});
-
-      // Get download URL from snapshot
-      String downloadURL = await snapshot.ref.getDownloadURL();
-
-      // Update profile image URL in SharedPreferences
-      logindata.setString("imgUrl", downloadURL);
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile image uploaded successfully')),
-      );
-
-      setState(() {
-        profileImageUrl = downloadURL; // Update current profile image URL in the widget
-      });
-    } catch (e) {
-      print('Error uploading profile image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload profile image')),
-      );
-    }
-  }
-
   void _showAppInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -256,7 +260,8 @@ class _SettingPageState extends State<SettingPage> {
               children: <Widget>[
                 Text('Version: 1.0.0'),
                 Text('Developer: Kanudo Creation'),
-                Text('Description: This app is built for day-to-day communication between users and clients.'),
+                Text(
+                    'Description: This app is built for day-to-day communication between users and clients.'),
               ],
             ),
           ),
