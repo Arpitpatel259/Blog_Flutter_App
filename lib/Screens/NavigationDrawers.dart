@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:blog/Screens/showMyBlogs.dart';
 import 'package:blog/Screens/splashScreen.dart';
 import 'package:blog/Services/Auth.dart';
@@ -9,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'AboutMePage.dart';
 import 'UserAppSetting.dart';
 
 class NavigationDrawers extends StatefulWidget {
@@ -59,66 +55,66 @@ class _NavigationDrawer extends State<NavigationDrawers> {
         ),
         child: ListView(
           children: <Widget>[
+            const SizedBox(height: 10),
+            Padding(
+              padding: padding,
+              child: UserAccountsDrawerHeader(
+                decoration: const BoxDecoration(
+                  color: Colors.blueGrey,
+                ),
+                accountName: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'SF Pro',
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'Welcome, ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text: name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.normal,
+                          fontFamily: 'SF Pro',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                accountEmail: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'CustomFont',
+                    ),
+                    children: [
+                      TextSpan(
+                        text: email,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.normal,
+                          fontFamily: 'SF Pro',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                currentAccountPicture: ClipOval(
+                  clipBehavior:Clip.hardEdge,
+                  child: authMethods.buildProfileImage(pImage),
+                ),
+              ),
+            ),
             Container(
               padding: padding,
               child: Column(
                 children: [
                   const SizedBox(height: 15),
-                  UserAccountsDrawerHeader(
-                    decoration: const BoxDecoration(
-                      color: Colors.blueGrey,
-                    ),
-                    accountName: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: 'SF Pro',
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'Welcome, ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          TextSpan(
-                            text: name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.normal,
-                              fontFamily: 'SF Pro',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    accountEmail: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: 'CustomFont',
-                        ),
-                        children: [
-                          TextSpan(
-                            text: email,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.normal,
-                              fontFamily: 'SF Pro',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    currentAccountPicture: Hero(
-                      tag: 'profile-picture',
-                      child: CircleAvatar(
-                        radius: 100,
-                        child: authMethods.buildProfileImage(pImage),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
                   buildMenuItem(
                     text: 'DashBoard',
                     style: const TextStyle(
@@ -150,23 +146,13 @@ class _NavigationDrawer extends State<NavigationDrawers> {
                   ),
                   const SizedBox(height: 24),
                   buildMenuItem(
-                    text: 'About Us',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontFamily: 'SF Pro',
-                    ),
-                    icon: Icons.info_outline,
-                    onClicked: () => selectedItems(context, 3),
-                  ),
-                  const SizedBox(height: 24),
-                  buildMenuItem(
                     text: 'Logout',
                     style: const TextStyle(
                       fontWeight: FontWeight.normal,
                       fontFamily: 'SF Pro',
                     ),
                     icon: Icons.logout_sharp,
-                    onClicked: () => selectedItems(context, 4),
+                    onClicked: () => selectedItems(context, 3),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -222,13 +208,6 @@ class _NavigationDrawer extends State<NavigationDrawers> {
           break;
         }
       case 3:
-        {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const AboutUsPage()),
-          );
-          break;
-        }
-      case 4:
         {
           showPlatformDialog<String>(
             context: context,

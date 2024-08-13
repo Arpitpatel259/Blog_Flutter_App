@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/Services/Database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,7 +17,7 @@ class BlogList extends StatefulWidget {
 }
 
 class _BlogListState extends State<BlogList> {
-  final DatabaseMethod _authMethods = DatabaseMethod();
+  final DatabaseMethod _databaseMethod = DatabaseMethod();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -32,10 +29,11 @@ class _BlogListState extends State<BlogList> {
   void initState() {
     super.initState();
     _refreshBlogs();
+
   }
 
   Future<void> _refreshBlogs() async {
-    final blogs = await _authMethods.getAllBlogs();
+    final blogs = await _databaseMethod.getAllBlogs();
     setState(() {
       _blogList = blogs;
     });
@@ -46,8 +44,9 @@ class _BlogListState extends State<BlogList> {
   }
 
   Future<void> _toggleLike(String blogId, bool isLiked) async {
-    final user = _auth.currentUser!;
-    final userName = user.displayName ?? 'Anonymous';
+    final prefs = await SharedPreferences.getInstance();
+    String userName =
+        prefs.getString('name') ?? 'Anonymous'; // Provide a fallback value
 
     // Optimistically update local state
     setState(() {
@@ -80,7 +79,6 @@ class _BlogListState extends State<BlogList> {
         });
       }
     } catch (e) {
-      print("Error updating like: $e");
       // Optionally revert the optimistic update if the error occurs
       setState(() {
         _blogList = _blogList.map((blog) {
@@ -133,9 +131,7 @@ class _BlogListState extends State<BlogList> {
         'userId': userId,
         'timestamp': FieldValue.serverTimestamp(),
       });
-    } catch (e) {
-      print("Error adding comment: $e");
-    }
+    } catch (e) {}
   }
 
   void _showCommentBottomSheet(String blogId) {
@@ -296,144 +292,158 @@ class _BlogListState extends State<BlogList> {
             final DateTime dateTime = timestamp.toDate();
             final String formattedDate =
                 DateFormat.yMMMd().add_jm().format(dateTime);
-            final userName = _auth.currentUser?.displayName ?? 'Anonymous';
-            final List<dynamic> likes = blog['likes'] ?? [];
-            final bool isLiked = likes.contains(userName);
-            final int likeCount = likes.length;
 
-            // Get author image
-            final String authorId = blog['userId'];
-            final String? authorImage = _profileImages[authorId];
-            authMethods.buildProfileImage(authorImage);
+            // Asynchronous SharedPreferences retrieval
+            return FutureBuilder<SharedPreferences>(
+              future: SharedPreferences.getInstance(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final prefs = snapshot.data!;
+                final String userName = prefs.getString('name') ?? 'Anonymous';
+                final List<dynamic> likes = blog['likes'] ?? [];
+                final bool isLiked = likes.contains(userName);
+                final int likeCount = likes.length;
 
-            return GestureDetector(
-              onTap: () {},
-              child: Card(
-                margin: const EdgeInsets.all(8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Get author image
+                final String authorId = blog['userId'];
+                final String? authorImage = _profileImages[authorId];
+
+                return GestureDetector(
+                  onTap: () {},
+                  child: Card(
+                    margin: const EdgeInsets.all(8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              ClipOval(
-                                child:
-                                    authMethods.buildProfileImage(authorImage),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Row(
                                 children: [
-                                  Text(
-                                    blog['author'] ?? 'Unknown',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
+                                  ClipOval(
+                                    child: authMethods
+                                        .buildProfileImage(authorImage),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        blog['author'] ?? 'Unknown',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        blog['title'] ?? 'Blog Title',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BlogDetailScreen(
-                                    blog: blog, image: authorImage),
+                          const SizedBox(height: 16),
+                          Text(
+                            blog['title'] ?? 'Blog Title',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BlogDetailScreen(
+                                        blog: blog, image: authorImage),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0, horizontal: 12.0),
+                                color: Colors.black.withOpacity(0.5),
+                                child: Text(
+                                  blog['content'] ?? 'Blog Title',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 5,
+                                  overflow: TextOverflow.fade,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 12.0),
-                            color: Colors.black.withOpacity(0.5),
-                            child: Text(
-                              blog['content'] ?? 'Blog Title',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 5,
-                              overflow: TextOverflow.fade,
-                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                          const SizedBox(height: 16),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                  isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isLiked ? Colors.red : null,
-                                ),
-                                onPressed: () {
-                                  _toggleLike(blog['id'], isLiked);
-                                },
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      isLiked
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color:
+                                          isLiked ? Colors.red : Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      _toggleLike(blog['id'], isLiked);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon:
+                                        const Icon(Icons.mode_comment_outlined),
+                                    onPressed: () {
+                                      _showCommentBottomSheet(blog['id']);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.send_outlined),
+                                    onPressed: () {
+                                      Share.share(
+                                          '${blog['title']}\nRead more at: ${blog['content']}');
+                                    },
+                                  ),
+                                ],
                               ),
                               IconButton(
-                                icon: const Icon(Icons.mode_comment_outlined),
-                                onPressed: () {
-                                  _showCommentBottomSheet(blog['id']);
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.send_outlined),
-                                onPressed: () {
-                                  Share.share(
-                                      '${blog['title']}\nRead more at: ${blog['content']}');
-                                },
+                                icon:
+                                    const Icon(Icons.bookmark_border_outlined),
+                                onPressed: () {},
                               ),
                             ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.bookmark_border_outlined),
-                            onPressed: () {},
+                          Text(
+                            "$likeCount likes",
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 5.0),
+                          Text(
+                            formattedDate,
+                            style: const TextStyle(
+                                fontSize: 10, color: Colors.grey),
                           ),
                         ],
                       ),
-                      Text(
-                        "$likeCount likes",
-                        style: const TextStyle(
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 5.0),
-                      Text(
-                        formattedDate,
-                        style:
-                            const TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),

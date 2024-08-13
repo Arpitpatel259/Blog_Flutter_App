@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Services/Database.dart';
 import 'BlogDetailScreen.dart';
@@ -23,8 +24,8 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   Future<List<Map<String, dynamic>>>? _futureBlogs;
   final DatabaseMethod _dbMethods = DatabaseMethod();
   final AuthMethods _authMethods = AuthMethods();
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late SharedPreferences pref;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   }
 
   Future<void> _refreshBlogs() async {
+    pref = await SharedPreferences.getInstance();
     setState(() {
       _futureBlogs = _dbMethods.getCurrentUserBlogs();
     });
@@ -74,7 +76,9 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                   final DateTime dateTime = timestamp.toDate();
                   final String formattedDate =
                       DateFormat.yMMMd().add_jm().format(dateTime);
-                  final authorImage = _auth.currentUser?.photoURL;
+
+                  final authorImage =
+                      _auth.currentUser?.photoURL ?? pref.getString('imgUrl');
 
                   return Card(
                     margin: const EdgeInsets.all(8.0),
@@ -86,18 +90,8 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                           Row(
                             children: [
                               ClipOval(
-                                child: authorImage != null
-                                    ? Image.network(
-                                        authorImage,
-                                        fit: BoxFit.cover,
-                                        width: 50,
-                                        height: 50,
-                                      )
-                                    : const Icon(
-                                        Icons.account_circle,
-                                        size: 50,
-                                        color: Colors.white,
-                                      ),
+                                child:
+                                    _authMethods.buildProfileImage(authorImage),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -151,37 +145,32 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Positioned(
-                            right: 16.0,
-                            left: 16.0,
-                            bottom: 16.0,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BlogDetailScreen(
-                                      blog: blog,
-                                      image: authorImage,
-                                    ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BlogDetailScreen(
+                                    blog: blog,
+                                    image: authorImage,
                                   ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0, horizontal: 12.0),
-                                color: Colors.black.withOpacity(0.5),
-                                child: Text(
-                                  blog['content'] ?? 'Blog Title',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 5,
-                                  overflow: TextOverflow.fade,
-                                  textAlign: TextAlign.center,
                                 ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0, horizontal: 12.0),
+                              color: Colors.black.withOpacity(0.5),
+                              child: Text(
+                                blog['content'] ?? 'Blog Title',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 5,
+                                overflow: TextOverflow.fade,
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),

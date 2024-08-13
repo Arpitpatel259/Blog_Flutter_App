@@ -67,8 +67,35 @@ class _PostEditorState extends State<PostEditor> {
     super.dispose();
   }
 
-  void _saveChanges() async {
-    final name = FirebaseAuth.instance.currentUser?.displayName ?? 'Anonymous';
+  void _UploadBlogPost() async {
+    if (_mediaFile != null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final name = FirebaseAuth.instance.currentUser?.displayName ??
+          prefs.getString('name');
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+      await AuthMethods().uploadPost(name!, _titleController.text,
+          _contentController.text, _mediaFile, context);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainPage()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please select an image!'),
+        backgroundColor: Colors.teal,
+        action: SnackBarAction(label: 'Dismiss', onPressed: () {}),
+      ));
+    }
+  }
+
+  void _UpdateBlogPost() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final name = FirebaseAuth.instance.currentUser?.displayName ??
+        prefs.getString('name');
 
     showDialog(
       context: context,
@@ -81,7 +108,7 @@ class _PostEditorState extends State<PostEditor> {
 
     await AuthMethods().updateBlog(
       widget.blog?['id'],
-      name,
+      name!,
       _titleController.text,
       _contentController.text,
       _mediaFile,
@@ -120,37 +147,7 @@ class _PostEditorState extends State<PostEditor> {
                   onPressed: () async {
                     if (_titleController.text.isNotEmpty &&
                         _contentController.text.isNotEmpty) {
-                      if (_mediaFile != null) {
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        final name =
-                            FirebaseAuth.instance.currentUser?.displayName ??
-                                prefs.getString('name');
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (context) =>
-                              const Center(child: CircularProgressIndicator()),
-                        );
-                        await AuthMethods().uploadPost(
-                            name!,
-                            _titleController.text,
-                            _contentController.text,
-                            _mediaFile,
-                            context);
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                              builder: (context) => const MainPage()),
-                          (route) => false,
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: const Text('Please select an image!'),
-                          backgroundColor: Colors.teal,
-                          action: SnackBarAction(
-                              label: 'Dismiss', onPressed: () {}),
-                        ));
-                      }
+                      _UploadBlogPost();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: const Text('Please write some content!'),
@@ -315,7 +312,7 @@ class _PostEditorState extends State<PostEditor> {
                   onPressed: () async {
                     if (_titleController.text.isNotEmpty &&
                         _contentController.text.isNotEmpty) {
-                      _saveChanges();
+                      _UpdateBlogPost();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: const Text('Please write some content!'),

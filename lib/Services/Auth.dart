@@ -362,7 +362,7 @@ class AuthMethods {
       // Create a Map to hold the blog post data
       Map<String, dynamic> postData = {
         'id': postId,
-        'userId': prefs.getString('userId') ?? prefs.getString('id'),
+        'userId': prefs.getString('userId'),
         'author': author,
         'title': title,
         'content': content,
@@ -452,7 +452,7 @@ class AuthMethods {
 
       Map<String, dynamic> postData = {
         'id': blogId,
-        'userId': prefs.getString('userId') ?? prefs.getString('id'),
+        'userId': prefs.getString('userId'),
         'author': author,
         'title': title,
         'content': content,
@@ -494,32 +494,42 @@ class AuthMethods {
       // Handle the case where no image is provided
       return const Icon(
         Icons.account_circle,
-        size: 100,
+        size: 50,
         color: Colors.grey,
       );
     }
 
-    try {
-      // Decode the Base64 string to bytes
-      Uint8List imageBytes = base64Decode(base64Image);
-
-      return ClipOval(
-        child: Image.memory(
-          imageBytes,
-          fit: BoxFit.cover,
-          width: 50,
-          height: 50,
-        ),
-      );
-    } catch (e) {
-      // Handle errors during decoding
-      print('Error decoding Base64 image: $e');
+    // Heuristic to check if the input is a URL or Base64 string
+    if (base64Image.startsWith('http') || base64Image.startsWith('https')) {
+      // If it starts with http or https, treat it as a network URL
       return Image.network(
         base64Image,
         fit: BoxFit.cover,
         width: 50,
         height: 50,
       );
+    } else {
+      try {
+        // Decode the Base64 string to bytes
+        Uint8List imageBytes = base64Decode(base64Image);
+
+        return ClipOval(
+          child: Image.memory(
+            imageBytes,
+            fit: BoxFit.cover,
+            width: 50,
+            height: 50,
+          ),
+        );
+      } catch (e) {
+        // Handle errors during decoding
+        print('Error decoding Base64 image: $e');
+        return const Icon(
+          Icons.error,
+          size: 50,
+          color: Colors.red,
+        );
+      }
     }
   }
 }

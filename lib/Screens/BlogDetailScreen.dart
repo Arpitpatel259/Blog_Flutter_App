@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:blog/Services/Auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,32 +16,13 @@ class BlogDetailScreen extends StatelessWidget {
     final String formattedDate =
         DateFormat.yMMMd().add_jm().format(blog['timestamp'].toDate());
     final int likeCount = (blog['likes'] ?? []).length;
+    AuthMethods authMethods = AuthMethods();
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blueGrey,
         title: ClipOval(
-          child: image != null
-              ? Image.network(
-                  image!,
-                  fit: BoxFit.cover,
-                  width: 50,
-                  height: 50,
-                  errorBuilder: (context, error, stackTrace) {
-                    // Provide a fallback icon if the image fails to load
-                    return Image.memory(
-                      base64Decode(image!),
-                      fit: BoxFit.cover,
-                      width: 50,
-                      height: 50,
-                    );
-                  },
-                )
-              : const Icon(
-                  Icons.account_circle,
-                  size: 50,
-                  color: Colors.white,
-                ),
+          child: authMethods.buildProfileImage(image),
         ),
         actions: [
           IconButton(

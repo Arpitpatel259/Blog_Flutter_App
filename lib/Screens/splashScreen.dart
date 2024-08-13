@@ -1,4 +1,5 @@
 import 'package:blog/Authentication/UserLoginScreen.dart';
+import 'package:blog/Services/Auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +19,7 @@ class _SplashScreenState extends State<SplashScreen> {
   List<Map<String, dynamic>> _blogList = [];
   final Map<String, String> _profileImages = {};
   bool isLoading = true;
+  AuthMethods authMethods = AuthMethods();
 
   @override
   void initState() {
@@ -43,7 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     DocumentSnapshot userSnapshot =
-    await FirebaseFirestore.instance.collection('User').doc(userId).get();
+        await FirebaseFirestore.instance.collection('User').doc(userId).get();
 
     if (userSnapshot.exists) {
       setState(() {
@@ -84,7 +86,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     itemBuilder: (context, index) {
                       final blog = _blogList[index];
                       _getImage(blog['userId']);
-                      final List<dynamic> likers = blog['likers'] ?? [];
+                      final List<dynamic> likers = blog['likes'] ?? [];
                       final int likeCount = likers.length;
 
                       final Timestamp timestamp = blog['timestamp'];
@@ -112,27 +114,8 @@ class _SplashScreenState extends State<SplashScreen> {
                                     Row(
                                       children: [
                                         ClipOval(
-                                          child: pImage != null
-                                              ? Image.network(
-                                                  pImage,
-                                                  fit: BoxFit.cover,
-                                                  width: 50,
-                                                  height: 50,
-                                                  errorBuilder: (context, error,
-                                                      stackTrace) {
-                                                    // Provide a fallback icon if the image fails to load
-                                                    return const Icon(
-                                                      Icons.account_circle,
-                                                      size: 50,
-                                                      color: Colors.white,
-                                                    );
-                                                  },
-                                                )
-                                              : const Icon(
-                                                  Icons.account_circle,
-                                                  size: 50,
-                                                  color: Colors.white,
-                                                ),
+                                          child: authMethods
+                                              .buildProfileImage(pImage),
                                         ),
                                         const SizedBox(width: 8),
                                         Column(
