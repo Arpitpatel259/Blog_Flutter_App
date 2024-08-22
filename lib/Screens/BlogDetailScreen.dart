@@ -20,7 +20,7 @@ class BlogDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         title: ClipOval(
           child: authMethods.buildProfileImage(image),
         ),
@@ -38,59 +38,90 @@ class BlogDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(blog['title'] ?? '',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              blog['title'] ?? '',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.headline6?.color,
+              ),
+            ),
             const SizedBox(height: 8.0),
-            Text("Published by: ${blog['author'] ?? ''}",
-                style:
-                    const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            Text(formattedDate),
+            Text(
+              "Published by: ${blog['author'] ?? ''}",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.subtitle1?.color,
+              ),
+            ),
+            Text(
+              formattedDate,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.subtitle1?.color,
+              ),
+            ),
             const SizedBox(height: 16),
             blog['imageBase64'] != null
                 ? Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.0),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8.0,
-                            offset: Offset(0, 4))
+                          color: Theme.of(context).colorScheme.shadow,
+                          blurRadius: 8.0,
+                          offset: const Offset(0, 4),
+                        )
                       ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8.0),
-                      child: Image.memory(base64Decode(blog['imageBase64']),
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 200.0),
+                      child: Image.memory(
+                        base64Decode(blog['imageBase64']),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 200.0,
+                      ),
                     ),
                   )
                 : Container(
                     height: 200.0,
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8.0),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8.0,
-                            offset: Offset(0, 4))
+                          color: Theme.of(context).colorScheme.shadow,
+                          blurRadius: 8.0,
+                          offset: const Offset(0, 4),
+                        )
                       ],
                     ),
                     child: const Center(
-                        child: Icon(Icons.image_outlined, size: 48)),
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 48,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(5.0),
               decoration: BoxDecoration(
-                border: Border.all(),
+                border: Border.all(color: Theme.of(context).dividerColor),
                 borderRadius: BorderRadius.circular(8.0),
               ),
               child: SelectableText(
                 blog['content'] ?? '',
-                style: const TextStyle(fontSize: 20.0, height: 2),
+                style: TextStyle(
+                  fontSize: 20.0,
+                  height: 2,
+                  color: Theme.of(context).textTheme.bodyText1?.color,
+                ),
                 textAlign: TextAlign.justify,
               ),
             ),
@@ -98,8 +129,18 @@ class BlogDetailScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Text(likeCount == 1 ? '$likeCount Like' : '$likeCount Likes'),
-                const Text("0 Comments"),
+                Text(
+                  likeCount == 1 ? '$likeCount Like' : '$likeCount Likes',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyText2?.color,
+                  ),
+                ),
+                const Text(
+                  "0 Comments",
+                  style: TextStyle(
+                    color: Colors.black54,
+                  ),
+                ),
               ],
             ),
           ],

@@ -1,12 +1,10 @@
-import 'package:blog/Services/Auth.dart';
-import 'package:blog/Services/Database.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../Services/Auth.dart';
 import '../Screens/BlogDetailScreen.dart';
 
 class BlogList extends StatefulWidget {
@@ -17,40 +15,69 @@ class BlogList extends StatefulWidget {
 }
 
 class _BlogListState extends State<BlogList> {
-  final DatabaseMethod _databaseMethod = DatabaseMethod();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthMethods _authMethods = AuthMethods();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _blogList = [];
+  List<Map<String, dynamic>> _filteredBlogList = [];
+  bool _isLoading = false;
   final Map<String, String> _profileImages = {};
-  AuthMethods authMethods = AuthMethods();
+  String _selectedCategory = 'All'; // Initially show all categories
+  final List<String> _categories = [
+    'All',
+    'Tech',
+    'Lifestyle',
+    'Education',
+    'Travel',
+    'Food',
+    'God'
+  ];
 
   @override
   void initState() {
     super.initState();
     _refreshBlogs();
-
   }
 
   Future<void> _refreshBlogs() async {
-    final blogs = await _databaseMethod.getAllBlogs();
+    setState(() {
+      _isLoading = true;
+    });
+
+    final blogs = await _authMethods.getAllBlogs();
     setState(() {
       _blogList = blogs;
+      _filterBlogs();
     });
-    // Fetch profile images after blogs are loaded
+
     for (var blog in blogs) {
       await _getImage(blog['userId']);
     }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  void _filterBlogs() {
+    setState(() {
+      if (_selectedCategory == 'All') {
+        _filteredBlogList = _blogList;
+      } else {
+        _filteredBlogList = _blogList
+            .where((blog) => blog['category'] == _selectedCategory)
+            .toList();
+      }
+    });
   }
 
   Future<void> _toggleLike(String blogId, bool isLiked) async {
     final prefs = await SharedPreferences.getInstance();
-    String userName =
-        prefs.getString('name') ?? 'Anonymous'; // Provide a fallback value
+    String userName = prefs.getString('name') ?? 'Anonymous';
 
     // Optimistically update local state
     setState(() {
-      _blogList = _blogList.map((blog) {
+      _filteredBlogList = _filteredBlogList.map((blog) {
         if (blog['id'] == blogId) {
           final List<dynamic> likes = blog['likes'] ?? [];
           final bool newIsLiked = !isLiked;
@@ -67,27 +94,27 @@ class _BlogListState extends State<BlogList> {
     });
 
     try {
+      // Update Firestore based on the new like status
       if (isLiked) {
-        // Remove like
+        // Remove like from Firestore
         await _firestore.collection('Blog').doc(blogId).update({
           'likes': FieldValue.arrayRemove([userName]),
         });
       } else {
-        // Add like
+        // Add like to Firestore
         await _firestore.collection('Blog').doc(blogId).update({
           'likes': FieldValue.arrayUnion([userName]),
         });
       }
     } catch (e) {
-      // Optionally revert the optimistic update if the error occurs
+      // If there's an error, revert the optimistic update
       setState(() {
-        _blogList = _blogList.map((blog) {
+        _filteredBlogList = _filteredBlogList.map((blog) {
           if (blog['id'] == blogId) {
             final List<dynamic> likes = blog['likes'] ?? [];
-            final bool revertedIsLiked = !isLiked;
-            final List<dynamic> revertedLikes = revertedIsLiked
-                ? likes.where((name) => name != userName).toList()
-                : [...likes, userName];
+            final List<dynamic> revertedLikes = isLiked
+                ? [...likes, userName]
+                : likes.where((name) => name != userName).toList();
             return {
               ...blog,
               'likes': revertedLikes,
@@ -114,26 +141,6 @@ class _BlogListState extends State<BlogList> {
     }
   }
 
-  Future<void> _addComment(String blogId, String commentText) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final user = _auth.currentUser!;
-    final userName = user.displayName ?? prefs.getString('name');
-    final userId = user.uid;
-
-    try {
-      await _firestore
-          .collection('Blog')
-          .doc(blogId)
-          .collection('comments')
-          .add({
-        'userName': userName,
-        'commentText': commentText,
-        'userId': userId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {}
-  }
-
   void _showCommentBottomSheet(String blogId) {
     final TextEditingController commentController = TextEditingController();
 
@@ -149,7 +156,6 @@ class _BlogListState extends State<BlogList> {
             padding: const EdgeInsets.all(10.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              // Set to min to dynamically adjust
               children: [
                 Flexible(
                   child: StreamBuilder<QuerySnapshot>(
@@ -172,9 +178,7 @@ class _BlogListState extends State<BlogList> {
 
                       return ListView.builder(
                         shrinkWrap: true,
-                        // Allows the list to take only needed space
                         physics: const NeverScrollableScrollPhysics(),
-                        // Prevents scrolling within the bottom sheet
                         itemCount: comments.length,
                         itemBuilder: (context, index) {
                           final commentData =
@@ -183,7 +187,6 @@ class _BlogListState extends State<BlogList> {
                               commentData['userName'] ?? 'Anonymous';
                           final commentText = commentData['commentText'] ?? '';
 
-                          // Check if timestamp exists and is not null
                           final timestamp = commentData['timestamp'];
                           final DateTime? dateTime = timestamp != null
                               ? (timestamp as Timestamp).toDate()
@@ -192,7 +195,6 @@ class _BlogListState extends State<BlogList> {
                               ? DateFormat.yMMMd().format(dateTime)
                               : '';
 
-                          // Get author image
                           final String? authorId = commentData['userId'];
                           final String? authorImage = _profileImages[authorId];
 
@@ -200,27 +202,8 @@ class _BlogListState extends State<BlogList> {
                             leading: ClipOval(
                               child: Container(
                                 color: Colors.blueGrey,
-                                child: authorImage != null
-                                    ? Image.network(
-                                        authorImage,
-                                        fit: BoxFit.cover,
-                                        width: 50,
-                                        height: 50,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          // Provide a fallback icon if the image fails to load
-                                          return const Icon(
-                                            Icons.account_circle,
-                                            size: 50,
-                                            color: Colors.white,
-                                          );
-                                        },
-                                      )
-                                    : const Icon(
-                                        Icons.account_circle,
-                                        size: 50,
-                                        color: Colors.white,
-                                      ),
+                                child:
+                                    _authMethods.buildProfileImage(authorImage),
                               ),
                             ),
                             title: Text(
@@ -262,9 +245,12 @@ class _BlogListState extends State<BlogList> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.send),
-                      onPressed: () {
+                      onPressed: () async {
                         if (commentController.text.isNotEmpty) {
-                          _addComment(blogId, commentController.text);
+                          await _authMethods.addComment(
+                            blogId,
+                            commentController.text,
+                          );
                           commentController.clear();
                         }
                       },
@@ -282,172 +268,326 @@ class _BlogListState extends State<BlogList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _refreshBlogs,
-        child: ListView.builder(
-          itemCount: _blogList.length,
-          itemBuilder: (context, index) {
-            final blog = _blogList[index];
-            final Timestamp timestamp = blog['timestamp'];
-            final DateTime dateTime = timestamp.toDate();
-            final String formattedDate =
-                DateFormat.yMMMd().add_jm().format(dateTime);
-
-            // Asynchronous SharedPreferences retrieval
-            return FutureBuilder<SharedPreferences>(
-              future: SharedPreferences.getInstance(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final prefs = snapshot.data!;
-                final String userName = prefs.getString('name') ?? 'Anonymous';
-                final List<dynamic> likes = blog['likes'] ?? [];
-                final bool isLiked = likes.contains(userName);
-                final int likeCount = likes.length;
-
-                // Get author image
-                final String authorId = blog['userId'];
-                final String? authorImage = _profileImages[authorId];
-
-                return GestureDetector(
-                  onTap: () {},
-                  child: Card(
-                    margin: const EdgeInsets.all(8.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  ClipOval(
-                                    child: authMethods
-                                        .buildProfileImage(authorImage),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        blog['author'] ?? 'Unknown',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            blog['title'] ?? 'Blog Title',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BlogDetailScreen(
-                                        blog: blog, image: authorImage),
-                                  ),
-                                );
+      appBar: AppBar(
+        title: const Text(
+          'Blogs',
+          style: TextStyle(color: Colors.white),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blueGrey, Colors.blueGrey],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _refreshBlogs,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _categories.map((category) {
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: ChoiceChip(
+                              label: Text(category),
+                              selected: _selectedCategory == category,
+                              onSelected: (bool selected) {
+                                setState(() {
+                                  _selectedCategory = category;
+                                  _filterBlogs(); // Filter the blogs based on the selected category
+                                });
                               },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0, horizontal: 12.0),
-                                color: Colors.black.withOpacity(0.5),
-                                child: Text(
-                                  blog['content'] ?? 'Blog Title',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 5,
-                                  overflow: TextOverflow.fade,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(
-                                      isLiked
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color:
-                                          isLiked ? Colors.red : Colors.white,
-                                    ),
-                                    onPressed: () {
-                                      _toggleLike(blog['id'], isLiked);
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon:
-                                        const Icon(Icons.mode_comment_outlined),
-                                    onPressed: () {
-                                      _showCommentBottomSheet(blog['id']);
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.send_outlined),
-                                    onPressed: () {
-                                      Share.share(
-                                          '${blog['title']}\nRead more at: ${blog['content']}');
-                                    },
-                                  ),
-                                ],
-                              ),
-                              IconButton(
-                                icon:
-                                    const Icon(Icons.bookmark_border_outlined),
-                                onPressed: () {},
-                              ),
-                            ],
-                          ),
-                          Text(
-                            "$likeCount likes",
-                            style: const TextStyle(
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 5.0),
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                                fontSize: 10, color: Colors.grey),
-                          ),
-                        ],
+                          );
+                        }).toList(),
                       ),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        ),
-      ),
+                  Expanded(
+                    child: _filteredBlogList.isEmpty
+                        ? const Center(
+                            child:
+                                Text('No posts available for this category.'))
+                        : ListView.builder(
+                            itemCount: _filteredBlogList.length,
+                            itemBuilder: (context, index) {
+                              final blog = _filteredBlogList[index];
+                              final Timestamp timestamp = blog['timestamp'];
+                              final DateTime dateTime = timestamp.toDate();
+                              final String formattedDate =
+                                  DateFormat.yMMMd().add_jm().format(dateTime);
+
+                              return FutureBuilder<SharedPreferences>(
+                                future: SharedPreferences.getInstance(),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                  final prefs = snapshot.data!;
+                                  final String userName =
+                                      prefs.getString('name') ?? 'Anonymous';
+                                  final List<dynamic> likes =
+                                      blog['likes'] ?? [];
+                                  final bool isLiked = likes.contains(userName);
+                                  final int likeCount = likes.length;
+
+                                  final String authorId = blog['userId'];
+                                  final String? authorImage =
+                                      _profileImages[authorId];
+
+                                  return GestureDetector(
+                                    onTap: () {},
+                                    child: Card(
+                                      color: Colors.grey[200],
+                                      margin: const EdgeInsets.all(8.0),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    ClipOval(
+                                                      child: _authMethods
+                                                          .buildProfileImage(
+                                                              authorImage),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          blog['author'] ??
+                                                              'Unknown',
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color:
+                                                                Colors.black87,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              blog['title'] ?? 'Blog Title',
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          BlogDetailScreen(
+                                                              blog: blog,
+                                                              image:
+                                                                  authorImage),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Text(
+                                                  blog['content'] ??
+                                                      'Blog Content',
+                                                  style: const TextStyle(
+                                                    color: Colors.black87,
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  maxLines: 5,
+                                                  overflow: TextOverflow.fade,
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: Icon(
+                                                        isLiked
+                                                            ? Icons.favorite
+                                                            : Icons
+                                                                .favorite_border,
+                                                        color: isLiked
+                                                            ? Colors.red
+                                                            : Colors.blueGrey,
+                                                      ),
+                                                      onPressed: () {
+                                                        _toggleLike(blog['id'],
+                                                            isLiked);
+                                                      },
+                                                    ),
+                                                    Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons
+                                                                .mode_comment_outlined,
+                                                            color:
+                                                                Colors.blueGrey,
+                                                          ),
+                                                          onPressed: () {
+                                                            _authMethods
+                                                                .countComments(
+                                                                    blog['id']);
+                                                            _showCommentBottomSheet(
+                                                                blog['id']);
+                                                          },
+                                                        ),
+                                                        FutureBuilder<int>(
+                                                          future: _authMethods
+                                                              .countComments(
+                                                                  blog['id']),
+                                                          builder: (BuildContext
+                                                                  context,
+                                                              AsyncSnapshot<int>
+                                                                  snapshot) {
+                                                            if (snapshot
+                                                                .hasError) {
+                                                              return Text(
+                                                                  'Error: ${snapshot.error}');
+                                                            }
+
+                                                            return Text(
+                                                              "${snapshot.data}",
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 14.0,
+                                                                color: Colors
+                                                                    .black87,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.send_outlined,
+                                                        color: Colors.blueGrey,
+                                                      ),
+                                                      onPressed: () {
+                                                        Share.share(
+                                                            '${blog['title']}\nRead more at: ${blog['content']}');
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                                IconButton(
+                                                  icon: FutureBuilder<bool>(
+                                                    future: _authMethods
+                                                        .isPostSaved(
+                                                            blog['userId'],
+                                                            blog['id']),
+                                                    // Check if the post is saved
+                                                    builder:
+                                                        (context, snapshot) {
+                                                      if (snapshot.hasData &&
+                                                          snapshot.data ==
+                                                              true) {
+                                                        return const Icon(
+                                                          Icons.bookmark,
+                                                          color:
+                                                              Colors.blueGrey,
+                                                        ); // Filled bookmark if saved
+                                                      } else {
+                                                        return const Icon(
+                                                          Icons
+                                                              .bookmark_border_outlined,
+                                                          color:
+                                                              Colors.blueGrey,
+                                                        ); // Outlined bookmark if not saved
+                                                      }
+                                                    },
+                                                  ),
+                                                  onPressed: () async {
+                                                    final pref =
+                                                        await SharedPreferences
+                                                            .getInstance();
+                                                    final userId = pref
+                                                        .getString('userId')
+                                                        .toString();
+                                                    await _authMethods.savePost(
+                                                        userId, blog);
+                                                    setState(
+                                                        () {}); // Trigger a rebuild to refresh the bookmark icon
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                            Text(
+                                              likeCount == 1
+                                                  ? '$likeCount Like'
+                                                  : '$likeCount Likes',
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 14.0,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5.0),
+                                            Text(
+                                              formattedDate,
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

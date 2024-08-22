@@ -22,34 +22,51 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
       _passwordController = TextEditingController(),
       _cPasswordController = TextEditingController();
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _mobileController.dispose();
+    _passwordController.dispose();
+    _cPasswordController.dispose();
+    super.dispose();
+  }
+
   Widget _buildTextFormField(
       {required String label,
-        required TextInputType keyboardType,
-        required IconData icon,
-        required String hint,
-        required TextEditingController controller,
-        bool obscureText = false,
-        String? Function(String?)? validator,
-        IconButton? suffixIcon}) {
+      required TextInputType keyboardType,
+      required IconData icon,
+      required String hint,
+      required TextEditingController controller,
+      bool obscureText = false,
+      String? Function(String?)? validator,
+      IconButton? suffixIcon}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        Text(label,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onBackground)),
         const SizedBox(height: defaultPadding),
         TextFormField(
           keyboardType: keyboardType,
           obscureText: obscureText,
           controller: controller,
           validator: validator,
-          style: const TextStyle(color: Colors.black, fontFamily: 'OpenSans'),
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.onBackground,
+              fontFamily: 'OpenSans'),
           decoration: InputDecoration(
-            fillColor: Colors.white24,
+            fillColor: Theme.of(context).colorScheme.background,
             filled: true,
             border: const OutlineInputBorder(),
             contentPadding: const EdgeInsets.only(top: 14.0),
-            prefixIcon: Icon(icon, color: Colors.blue),
+            prefixIcon:
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.black38),
+            hintStyle:
+                TextStyle(color: Theme.of(context).colorScheme.onSurface),
             suffixIcon: suffixIcon,
           ),
         ),
@@ -107,7 +124,8 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
             controller: _passwordController,
             obscureText: _isObscure,
             suffixIcon: IconButton(
-              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off,
+                  color: Theme.of(context).colorScheme.primary),
               onPressed: () => setState(() => _isObscure = !_isObscure),
             ),
             validator: (val) {
@@ -124,13 +142,17 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
             controller: _cPasswordController,
             obscureText: _isObscure1,
             suffixIcon: IconButton(
-              icon: Icon(_isObscure1 ? Icons.visibility : Icons.visibility_off),
+              icon: Icon(_isObscure1 ? Icons.visibility : Icons.visibility_off,
+                  color: Theme.of(context).colorScheme.primary),
               onPressed: () => setState(() => _isObscure1 = !_isObscure1),
             ),
             validator: (val) {
-              if (val == null || val.isEmpty) return 'Please Enter Confirm Password';
-              if (!val.isValidPassword) return 'Please Enter Valid Confirm Password';
-              if (val != _passwordController.text) return 'Password Do Not Match!';
+              if (val == null || val.isEmpty)
+                return 'Please Enter Confirm Password';
+              if (!val.isValidPassword)
+                return 'Please Enter Valid Confirm Password';
+              if (val != _passwordController.text)
+                return 'Password Do Not Match!';
               return null;
             },
           ),
@@ -160,16 +182,17 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                  builder: (context) =>
+                      const Center(child: CircularProgressIndicator()),
                 );
 
-                await AuthMethods().registerUser(
-                    _nameController.text, email, _mobileController.text, password, confirmPassword);
+                await AuthMethods().registerUser(_nameController.text, email,
+                    _mobileController.text, password, confirmPassword);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text("Registration Successful"),
-                    backgroundColor: Colors.teal,
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
                     behavior: SnackBarBehavior.floating,
                     action: SnackBarAction(
                       label: 'Dismiss',
@@ -180,14 +203,16 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
 
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const UserLoginScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const UserLoginScreen()),
                 );
               }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text("Registration Unsuccessful. Please Check Your Details!"),
-                  backgroundColor: Colors.teal,
+                  content: const Text(
+                      "Registration Unsuccessful. Please Check Your Details!"),
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
                   behavior: SnackBarBehavior.floating,
                   action: SnackBarAction(
                     label: 'Dismiss',
@@ -200,15 +225,15 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
         },
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.all(15.0),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30.0),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Sign Up',
           style: TextStyle(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onPrimary,
             letterSpacing: 1.5,
             fontSize: 18.0,
             fontWeight: FontWeight.bold,
@@ -222,6 +247,15 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back,
+              color: Theme.of(context).colorScheme.onBackground),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        elevation: 0, // Removes the shadow under the AppBar
+      ),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: GestureDetector(
@@ -229,12 +263,17 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
           child: Stack(
             children: [
               Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.white, Colors.white, Colors.white, Colors.white],
-                    stops: [0.1, 0.4, 0.7, 0.9],
+                    colors: [
+                      Theme.of(context).colorScheme.background,
+                      Theme.of(context).colorScheme.background,
+                      Theme.of(context).colorScheme.background,
+                      Theme.of(context).colorScheme.background,
+                    ],
+                    stops: const [0.1, 0.4, 0.7, 0.9],
                   ),
                 ),
                 height: double.infinity,
@@ -242,14 +281,15 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
               ),
               SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 100.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 30.0, vertical: 30.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Sign Up',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: Theme.of(context).colorScheme.onBackground,
                         fontFamily: 'OpenSans',
                         fontSize: 30.0,
                         fontWeight: FontWeight.bold,
@@ -259,18 +299,20 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
                     _buildSignUpButton(),
                     GestureDetector(
                       onTap: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const UserLoginScreen()),
-                              (Route<dynamic> route) => false,
-                        );
+                        Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const UserLoginScreen()),
+                            (route) => false);
                       },
                       child: RichText(
-                        text: const TextSpan(
+                        text: TextSpan(
                           children: [
                             TextSpan(
                               text: 'Already have an Account? ',
                               style: TextStyle(
-                                color: Colors.black,
+                                color:
+                                    Theme.of(context).colorScheme.onBackground,
                                 fontSize: 18.0,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -278,7 +320,7 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
                             TextSpan(
                               text: 'Sign In',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 18.0,
                                 fontWeight: FontWeight.bold,
                               ),

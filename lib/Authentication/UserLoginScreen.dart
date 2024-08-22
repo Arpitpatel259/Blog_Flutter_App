@@ -1,6 +1,7 @@
 // ignore_for_file: file_names, non_constant_identifier_names, use_build_context_synchronously, prefer_typing_uninitialized_variables, avoid_print, unnecessary_null_comparison
 
 import 'package:blog/Authentication/UserRegisterScreen.dart';
+import 'package:blog/Screens/splashScreen.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:blog/Utilities/constant.dart';
 import 'package:blog/Utilities/validation.dart';
@@ -17,8 +18,8 @@ class UserLoginScreen extends StatefulWidget {
 class _UserLoginScreen extends State<UserLoginScreen> {
   bool _isObscure = true;
   final _formKey = GlobalKey<FormState>();
-  var emailController = TextEditingController();
-  var passwordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
   @override
   void dispose() {
@@ -33,11 +34,16 @@ class _UserLoginScreen extends State<UserLoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('Email',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onBackground)),
           const SizedBox(height: defaultPadding),
           TextFormField(
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(fontFamily: 'OpenSans'),
+            style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: Theme.of(context).colorScheme.onBackground),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please Enter Email';
@@ -47,18 +53,24 @@ class _UserLoginScreen extends State<UserLoginScreen> {
               return null;
             },
             controller: emailController,
-            decoration: const InputDecoration(
-              fillColor: Colors.white24,
+            decoration: InputDecoration(
+              fillColor: Theme.of(context).colorScheme.background,
               filled: true,
               border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.only(top: 14.0),
-              prefixIcon: Icon(Icons.email),
-              hintText: 'Enter Your Email',
-              errorStyle: TextStyle(fontSize: 15),
+              contentPadding: const EdgeInsets.only(top: 14.0),
+              prefixIcon: Icon(Icons.email,
+                  color: Theme.of(context).colorScheme.primary),
+              hintText: 'Enter your Email',
+              hintStyle:
+                  TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              errorStyle: const TextStyle(fontSize: 15),
             ),
           ),
           const SizedBox(height: defaultPadding),
-          const Text('Password', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('Password',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onBackground)),
           const SizedBox(height: defaultPadding),
           TextFormField(
             keyboardType: TextInputType.visiblePassword,
@@ -71,23 +83,29 @@ class _UserLoginScreen extends State<UserLoginScreen> {
               return null;
             },
             obscureText: _isObscure,
-            style: const TextStyle(fontFamily: 'OpenSans'),
+            style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: Theme.of(context).colorScheme.onBackground),
             controller: passwordController,
             decoration: InputDecoration(
               suffixIcon: IconButton(
-                icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+                icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off,
+                    color: Theme.of(context).colorScheme.primary),
                 onPressed: () {
                   setState(() {
                     _isObscure = !_isObscure;
                   });
                 },
               ),
-              fillColor: Colors.white24,
+              fillColor: Theme.of(context).colorScheme.background,
               filled: true,
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: const Icon(Icons.lock),
-              hintText: 'Enter Your Password',
+              prefixIcon: Icon(Icons.lock,
+                  color: Theme.of(context).colorScheme.primary),
+              hintText: 'Enter your Password',
+              hintStyle:
+                  TextStyle(color: Theme.of(context).colorScheme.onSurface),
               errorStyle: const TextStyle(fontSize: 15),
             ),
           ),
@@ -106,14 +124,16 @@ class _UserLoginScreen extends State<UserLoginScreen> {
             showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (context) => const Center(child: CircularProgressIndicator()),
+              builder: (context) =>
+                  const Center(child: CircularProgressIndicator()),
             );
-            await AuthMethods().userLogin(emailController.text, passwordController.text, context);
+            await AuthMethods().userLogin(
+                emailController.text, passwordController.text, context);
           }
         },
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.all(defaultPadding),
-          backgroundColor: Colors.orange,
+          backgroundColor: Theme.of(context).colorScheme.secondary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30.0),
           ),
@@ -135,7 +155,17 @@ class _UserLoginScreen extends State<UserLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueGrey,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back,
+              color: Theme.of(context).colorScheme.onBackground),
+          onPressed: () => Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const SplashScreen()),
+              (route) => false),
+        ),
+      ),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: GestureDetector(
@@ -146,16 +176,18 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                 height: double.infinity,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 120.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40.0, vertical: 40.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      const Text(
+                      Text(
                         'Sign In',
                         style: TextStyle(
                           fontFamily: 'OpenSans',
                           fontSize: 30.0,
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
                       const SizedBox(height: defaultPadding),
@@ -164,9 +196,13 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () => showForgetPasswordDialog(context),
-                          child: const Text(
+                          child: Text(
                             'Forgot Password?',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15.0,
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
                           ),
                         ),
                       ),
@@ -176,17 +212,22 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20.0),
-                      const Text(
+                      Text(
                         'Sign in with',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.0,
+                            color: Theme.of(context).colorScheme.onBackground),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 30.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: <Widget>[
-                            _buildSocialBtn(() async => await AuthMethods().signInWithGoogle(context), const AssetImage('assets/logos/google.png')),
-                            _buildSocialBtn(() => print('Login with Facebook'), const AssetImage('assets/logos/facebook.png')),
+                            _buildSocialBtn(
+                                () async => await AuthMethods()
+                                    .signInWithGoogle(context),
+                                const AssetImage('assets/logos/google.png')),
                           ],
                         ),
                       ),
@@ -195,19 +236,30 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const UserRegisterScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const UserRegisterScreen()),
                           );
                         },
                         child: RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             children: [
                               TextSpan(
                                 text: 'Don\'t have an Account? ',
-                                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onBackground,
+                                    fontSize: 18.0,
+                                    fontWeight: FontWeight.bold),
                               ),
                               TextSpan(
                                 text: 'Sign Up',
-                                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontSize: 18.0,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -234,7 +286,7 @@ class _UserLoginScreen extends State<UserLoginScreen> {
           shape: BoxShape.circle,
           boxShadow: const [
             BoxShadow(
-              color: Colors.black26,
+              color: Colors.transparent,
               offset: Offset(0, 2),
               blurRadius: 6.0,
             ),
@@ -260,11 +312,16 @@ class _UserLoginScreen extends State<UserLoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Email',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onBackground)),
                 const SizedBox(height: defaultPadding),
                 TextFormField(
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(fontFamily: 'OpenSans'),
+                  style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: Theme.of(context).colorScheme.onBackground),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please Enter Email';
@@ -274,14 +331,17 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                     return null;
                   },
                   controller: emailController,
-                  decoration: const InputDecoration(
-                    fillColor: Colors.white24,
+                  decoration: InputDecoration(
+                    fillColor: Theme.of(context).colorScheme.background,
                     filled: true,
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.only(top: 14.0),
-                    prefixIcon: Icon(Icons.email),
-                    hintText: 'Enter Your Email',
-                    errorStyle: TextStyle(fontSize: 15),
+                    contentPadding: const EdgeInsets.only(top: 14.0),
+                    prefixIcon: Icon(Icons.email,
+                        color: Theme.of(context).colorScheme.primary),
+                    hintText: 'Enter your Email',
+                    hintStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface),
+                    errorStyle: const TextStyle(fontSize: 15),
                   ),
                 ),
                 const SizedBox(height: defaultPadding),

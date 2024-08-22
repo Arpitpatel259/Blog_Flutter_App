@@ -3,8 +3,7 @@ import 'package:blog/Services/Auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-
-import '../Services/Database.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'BlogDetailScreen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,7 +14,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final DatabaseMethod _authMethods = DatabaseMethod();
+  final AuthMethods _authMethods = AuthMethods();
   List<Map<String, dynamic>> _blogList = [];
   final Map<String, String> _profileImages = {};
   bool isLoading = true;
@@ -24,7 +23,43 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshBlogs();
+    _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    final cameraStatus = await Permission.camera.request();
+    final storageStatus = await Permission.storage.request();
+
+    if (cameraStatus.isDenied || storageStatus.isDenied) {
+      if (cameraStatus.isDenied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Camera permission is required for this app. Please enable it from app settings.'),
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: () => openAppSettings(),
+            ),
+          ),
+        );
+      }
+
+      if (storageStatus.isDenied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Storage permission is required for this app. Please enable it from app settings.'),
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: () => openAppSettings(),
+            ),
+          ),
+        );
+      }
+    } else if (cameraStatus.isGranted && storageStatus.isGranted) {
+      // Permissions are granted, continue with your functionality
+      _refreshBlogs();
+    }
   }
 
   Future<void> _refreshBlogs() async {
@@ -65,7 +100,8 @@ class _SplashScreenState extends State<SplashScreen> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Colors.blueGrey[800],
+        // Darker blue-grey for the AppBar
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             bottom: Radius.circular(16),
@@ -102,6 +138,8 @@ class _SplashScreenState extends State<SplashScreen> {
                         onTap: () {},
                         child: Card(
                           margin: const EdgeInsets.all(8.0),
+                          color: Colors
+                              .grey[200], // Light grey for card background
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -125,7 +163,10 @@ class _SplashScreenState extends State<SplashScreen> {
                                             Text(
                                               blog['author'] ?? 'Unknown',
                                               style: const TextStyle(
-                                                  fontWeight: FontWeight.bold),
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors
+                                                    .black87, // Dark text color
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -139,13 +180,17 @@ class _SplashScreenState extends State<SplashScreen> {
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.black, // Darker text color
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   formattedDate,
-                                  style: const TextStyle(fontSize: 10),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.black54, // Lighter text color
+                                  ),
                                 ),
                                 const SizedBox(height: 5),
                                 GestureDetector(
@@ -160,8 +205,11 @@ class _SplashScreenState extends State<SplashScreen> {
                                     );
                                   },
                                   child: Text(
-                                    blog['content'] ?? 'Blog Title',
-                                    style: const TextStyle(fontSize: 15),
+                                    blog['content'] ?? 'Blog Content',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.black87, // Dark text color
+                                    ),
                                     maxLines: 5,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -179,7 +227,8 @@ class _SplashScreenState extends State<SplashScreen> {
                                                 : Icons.favorite_border,
                                             color: likeCount > 0
                                                 ? Colors.red
-                                                : null,
+                                                : Colors
+                                                    .black54, // Color for inactive state
                                           ),
                                           onPressed: () {},
                                         ),
@@ -188,6 +237,8 @@ class _SplashScreenState extends State<SplashScreen> {
                                           style: const TextStyle(
                                             fontSize: 14.0,
                                             fontWeight: FontWeight.bold,
+                                            color: Colors
+                                                .black87, // Dark text color
                                           ),
                                         ),
                                       ],
@@ -196,7 +247,9 @@ class _SplashScreenState extends State<SplashScreen> {
                                       children: [
                                         IconButton(
                                           icon: const Icon(
-                                              Icons.mode_comment_outlined),
+                                              Icons.mode_comment_outlined,
+                                              color: Colors.black54),
+                                          // Color for comment icon
                                           onPressed: () {
                                             print("Comment Clicked");
                                           },
@@ -206,12 +259,16 @@ class _SplashScreenState extends State<SplashScreen> {
                                           style: TextStyle(
                                             fontSize: 14.0,
                                             fontWeight: FontWeight.bold,
+                                            color: Colors
+                                                .black87, // Dark text color
                                           ),
                                         ),
                                       ],
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.send_outlined),
+                                      icon: const Icon(Icons.send_outlined,
+                                          color: Colors.black54),
+                                      // Color for send icon
                                       onPressed: () {
                                         print("Share Clicked");
                                       },
@@ -231,9 +288,9 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Container(
               height: 150,
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.blueGrey,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: Colors.blueGrey[800], // Matching color with AppBar
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
@@ -261,7 +318,8 @@ class _SplashScreenState extends State<SplashScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.blueGrey[800],
+                        // Button text color
                         backgroundColor: Colors.white,
                       ),
                       child: const Text('Sign In'),

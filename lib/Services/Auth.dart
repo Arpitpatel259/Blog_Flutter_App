@@ -15,6 +15,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: kIsWeb
         ? '658979738135-d2llurejibm6rnlli6d870fpl8ach6qo.apps.googleusercontent.com'
@@ -31,10 +32,12 @@ class AuthMethods {
   var titleController = TextEditingController();
   var contentController = TextEditingController();
 
+  //getting current User
   Future<User?> getCurrentUser() async {
     return _auth.currentUser;
   }
 
+  //To check user is logged in or not
   Future<Widget> checkIfAlreadyLogin() async {
     try {
       // Initialize Firebase
@@ -335,8 +338,11 @@ class AuthMethods {
       // Clear Shared Preferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => const SplashScreen()));
+
+      Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
+          (route) => false);
     } catch (e) {
       if (kDebugMode) {
         print('Error during logout: $e');
@@ -344,9 +350,14 @@ class AuthMethods {
     }
   }
 
-  //Upload post function
-  Future<void> uploadPost(String author, String title, String content,
-      File? imageFile, BuildContext context) async {
+  Future<void> uploadPost(
+    String author,
+    String title,
+    String content,
+    File? imageFile,
+    BuildContext context, {
+    String? category, // Added category parameter
+  }) async {
     try {
       // Convert image to Base64 string
       String? imageBase64;
@@ -359,6 +370,7 @@ class AuthMethods {
 
       DatabaseMethod databaseMethod = DatabaseMethod();
       SharedPreferences prefs = await SharedPreferences.getInstance();
+
       // Create a Map to hold the blog post data
       Map<String, dynamic> postData = {
         'id': postId,
@@ -368,22 +380,22 @@ class AuthMethods {
         'content': content,
         'imageBase64': imageBase64,
         'likes': [],
+        'category': category, // Include category in post data
         'timestamp': FieldValue.serverTimestamp(),
       };
 
       // Call the addBlogs function to upload the blog post
       await databaseMethod.addBlogs(postId, postData);
 
+      // Clear the text fields
       authorController.clear();
       titleController.clear();
       contentController.clear();
 
-      // Show a success message or navigate to another page
+      // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Blog post uploaded successfully!',
-          ),
+          content: const Text('Blog post uploaded successfully!'),
           backgroundColor: Colors.teal,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
@@ -391,25 +403,24 @@ class AuthMethods {
             disabledTextColor: Colors.white,
             textColor: Colors.yellow,
             onPressed: () {
-              //Do whatever you want
+              // Do whatever you want
             },
           ),
         ),
       );
     } catch (e) {
+      // Show an error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Failed to upload blog post $e',
-          ),
-          backgroundColor: Colors.teal,
+          content: Text('Failed to upload blog post: $e'),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: 'Dismiss',
             disabledTextColor: Colors.white,
             textColor: Colors.yellow,
             onPressed: () {
-              //Do whatever you want
+              // Do whatever you want
             },
           ),
         ),
@@ -438,8 +449,9 @@ class AuthMethods {
     String content,
     File? mediaFile,
     String existingImageBase64,
-    BuildContext context,
-  ) async {
+    BuildContext context, {
+    String? category, // Added category parameter
+  }) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
       String? imageBase64 = existingImageBase64;
@@ -457,15 +469,15 @@ class AuthMethods {
         'title': title,
         'content': content,
         'imageBase64': imageBase64,
+        'category': category, // Include category in post data
         'timestamp': FieldValue.serverTimestamp(),
       };
 
       await firestore.collection('Blog').doc(blogId).update(postData);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Blog post updated successfully!',
-          ),
+          content: const Text('Blog post updated successfully!'),
           backgroundColor: Colors.teal,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
@@ -489,6 +501,7 @@ class AuthMethods {
     }
   }
 
+  //To show Profile images
   Widget buildProfileImage(String? base64Image) {
     if (base64Image == null || base64Image.isEmpty) {
       // Handle the case where no image is provided
@@ -530,6 +543,161 @@ class AuthMethods {
           color: Colors.red,
         );
       }
+    }
+  }
+
+  //Get all blogs from DB
+  Future<List<Map<String, dynamic>>> getAllBlogs() async {
+    try {
+      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Blog')
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
+        return doc.data() as Map<String, dynamic>;
+      }).toList();
+
+      print(blogList);
+      return blogList;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching blog data: $e');
+      }
+      return [];
+    }
+  }
+
+  //Get that blogs which is post by current user
+  Future<List<Map<String, dynamic>>> getCurrentUserBlogs() async {
+    try {
+      // Get the current user's ID
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No user is currently signed in.');
+        return [];
+      }
+      final userId = user.uid;
+
+      // Query Firestore to get only the blogs where the 'userId' field matches the current user's ID
+      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Blog')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      // Map the documents to a list of blog data
+      final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
+        return doc.data() as Map<String, dynamic>;
+      }).toList();
+
+      return blogList;
+    } catch (e) {
+      print('Error fetching blog data: $e');
+      return [];
+    }
+  }
+
+  //Create comment in any blogs
+  Future<void> addComment(String blogId, String commentText) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final user = _auth.currentUser!;
+    final userName = user.displayName ?? prefs.getString('name');
+    final userId = user.uid;
+
+    try {
+      // Generate a new document reference with a unique ID
+      final commentDoc = _firestore
+          .collection('Blog')
+          .doc(blogId)
+          .collection('comments')
+          .doc(); // Auto-generated ID
+
+      // Use the generated ID in the comment data
+      await commentDoc.set({
+        'id': commentDoc.id, // Ensure this is the auto-generated ID
+        'userName': userName,
+        'commentText': commentText,
+        'userId': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      // Handle any errors that occur during the add operation
+      print('Error adding comment: $e');
+    }
+  }
+
+  //Create a count of comment
+  Future<int> countComments(String blogId) async {
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    try {
+      // Get all documents in the comments collection for the specified blog
+      QuerySnapshot snapshot = await firestore
+          .collection('Blog')
+          .doc(blogId)
+          .collection('comments')
+          .get();
+
+      // Return the count of documents in the snapshot
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Error counting comments: $e');
+      return 0;
+    }
+  }
+
+  Future<void> savePost(String userId, Map<String, dynamic> blog) async {
+    try {
+      final savedPostsRef = _firestore
+          .collection('User')
+          .doc(userId)
+          .collection('SavedPosts') // Ensure this matches across all methods
+          .doc(blog['id']);
+
+      final savedPostSnapshot = await savedPostsRef.get();
+
+      if (savedPostSnapshot.exists) {
+        await savedPostsRef.delete();
+      } else {
+        await savedPostsRef.set(blog);
+      }
+    } catch (e) {
+      print('Error saving post: $e');
+    }
+  }
+
+  Future<bool> isPostSaved(String userId, String postId) async {
+    try {
+      final savedPostSnapshot = await _firestore
+          .collection('User')
+          .doc(userId)
+          .collection('SavedPosts') // Ensure consistency here too
+          .doc(postId)
+          .get();
+      return savedPostSnapshot.exists;
+    } catch (e) {
+      // Consider logging the error here
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSavedPosts(
+      String userId, BuildContext context) async {
+    try {
+      final savedPostsRef = _firestore
+          .collection('User')
+          .doc(userId)
+          .collection('SavedPosts'); // Ensure consistency
+
+      final querySnapshot = await savedPostsRef.get();
+
+      return querySnapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to retrieve saved posts: $e')),
+      );
+      return [];
     }
   }
 }

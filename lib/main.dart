@@ -1,17 +1,18 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:async';
 
-import 'package:blog/Screens/EditPostBlogs.dart';
-import 'package:blog/Services/Auth.dart';
-import 'package:blog/Utilities/cardwidgets.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import 'Screens/NavigationDrawers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'Screens/EditPostBlogs.dart';
+import 'Screens/SavedPostScreen.dart';
+import 'Screens/showMyBlogs.dart';
+import 'Services/Auth.dart';
+import 'Utilities/cardwidgets.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -41,29 +42,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        primaryColor: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        textTheme: const TextTheme(
-          bodyText1: TextStyle(color: Colors.black),
-          bodyText2: TextStyle(color: Colors.black),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          hintStyle: TextStyle(color: Colors.white),
-          prefixIconColor: Colors.white,
-        ),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey,
-        textTheme: const TextTheme(
-          bodyText1: TextStyle(color: Colors.white),
-          bodyText2: TextStyle(color: Colors.white),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          hintStyle: TextStyle(color: Colors.white),
-          prefixIconColor: Colors.white,
-        ),
       ),
       themeMode: ThemeMode.system,
       home: homeWidget,
@@ -75,7 +56,6 @@ class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
 
   @override
-  // ignore: library_private_types_in_public_api
   _MainPageState createState() => _MainPageState();
 }
 
@@ -83,20 +63,31 @@ class _MainPageState extends State<MainPage> {
   late StreamSubscription subscription;
   bool isDeviceConnected = false;
   bool isAlertSet = false;
+  int _selectedIndex = 0;
+  late SharedPreferences logindata;
+  AuthMethods authMethods = AuthMethods();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       getConnectivity();
+      initSharedPreferences();
     });
+  }
+
+  Future<void> initSharedPreferences() async {
+    logindata = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   getConnectivity() =>
       subscription = Connectivity().onConnectivityChanged.listen(
         (ConnectivityResult result) async {
           isDeviceConnected = await InternetConnectionChecker().hasConnection;
-          if (!isDeviceConnected && isAlertSet == false) {
+          if (!isDeviceConnected && !isAlertSet) {
             showDialogBox();
             setState(() => isAlertSet = true);
           }
@@ -106,8 +97,13 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     subscription.cancel();
-    // Ensure you call super.dispose() to clean up resources
     super.dispose();
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   showDialogBox() => showCupertinoDialog<String>(
@@ -122,7 +118,7 @@ class _MainPageState extends State<MainPage> {
                 setState(() => isAlertSet = false);
                 isDeviceConnected =
                     await InternetConnectionChecker().hasConnection;
-                if (!isDeviceConnected && isAlertSet == false) {
+                if (!isDeviceConnected && !isAlertSet) {
                   showDialogBox();
                   setState(() => isAlertSet = true);
                 }
@@ -136,41 +132,56 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const NavigationDrawers(),
-      appBar: AppBar(
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              'Blogs',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueGrey, Colors.blueGrey],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
-      body: const BlogList(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const PostEditor(
-                      isEdit: false,
-                    )),
-          );
-        },
+      body: _buildPageContent(_selectedIndex),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PostEditor(isEdit: false),
+                  ),
+                );
+              },
+              backgroundColor: Colors.blueGrey,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+      bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.blueGrey,
-        child: const Icon(Icons.add, color: Colors.white),
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'My Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.save_outlined),
+            label: 'Saved',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.white,
+        onTap: _onItemTapped,
       ),
     );
+  }
+
+  Widget _buildPageContent(int index) {
+    switch (index) {
+      case 0:
+        return const BlogList();
+      case 1:
+        return const showMyBlogPost();
+      case 2:
+        return SavedPostsScreen(
+          userId: logindata.getString('userId').toString(),
+        );
+      default:
+        return const SizedBox(); // Return an empty container or some placeholder
+    }
   }
 }
