@@ -373,9 +373,7 @@ class AuthMethods {
     }
   }
 
-//aj.vekariya123@gmail.com
-
-//Logout Your Session
+  //Logout Your Session
   Future<void> logout(BuildContext context) async {
     try {
       // Sign out from Google
@@ -474,13 +472,13 @@ class AuthMethods {
     }
   }
 
-//Convert Image
+  //Convert Image
   Future<String> _convertImageToBase64(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
     return base64Encode(bytes);
   }
 
-//Delete Blog Which is Post by user
+  //Delete Blog Which is Post by user
   Future<void> deleteBlogByUser(BuildContext context, String blogId) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
