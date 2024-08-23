@@ -32,6 +32,7 @@ class _BlogListState extends State<BlogList> {
     'Food',
     'God'
   ];
+  bool isPostSaved = false;
 
   @override
   void initState() {
@@ -71,54 +72,65 @@ class _BlogListState extends State<BlogList> {
     });
   }
 
+  bool isLikedByCurrentUser(List<dynamic>? likes, String userId) {
+    if (likes == null) {
+      return false; // Return false if the likes list is null
+    }
+    return likes.any((like) => like['userId'] == userId);
+  }
+
   Future<void> _toggleLike(String blogId, bool isLiked) async {
     final prefs = await SharedPreferences.getInstance();
     String userName = prefs.getString('name') ?? 'Anonymous';
+    String userId = prefs.getString('userId') ?? 'anonymous_user';
 
-    // Optimistically update local state
+    // Create a userLikeInfo object
+    Map<String, String> userLikeInfo = {
+      'userId': userId,
+      'userName': userName,
+    };
+
+    // Update local state optimistically
     setState(() {
       _filteredBlogList = _filteredBlogList.map((blog) {
         if (blog['id'] == blogId) {
           final List<dynamic> likes = blog['likes'] ?? [];
-          final bool newIsLiked = !isLiked;
-          final List<dynamic> updatedLikes = newIsLiked
-              ? [...likes, userName]
-              : likes.where((name) => name != userName).toList();
-          return {
-            ...blog,
-            'likes': updatedLikes,
-          };
+          if (isLiked) {
+            // Remove the user's like
+            blog['likes'] =
+                likes.where((like) => like['userId'] != userId).toList();
+          } else {
+            // Add the user's like
+            blog['likes'] = [...likes, userLikeInfo];
+          }
         }
         return blog;
       }).toList();
     });
 
     try {
-      // Update Firestore based on the new like status
+      // Update Firestore
       if (isLiked) {
-        // Remove like from Firestore
         await _firestore.collection('Blog').doc(blogId).update({
-          'likes': FieldValue.arrayRemove([userName]),
+          'likes': FieldValue.arrayRemove([userLikeInfo]),
         });
       } else {
-        // Add like to Firestore
         await _firestore.collection('Blog').doc(blogId).update({
-          'likes': FieldValue.arrayUnion([userName]),
+          'likes': FieldValue.arrayUnion([userLikeInfo]),
         });
       }
     } catch (e) {
-      // If there's an error, revert the optimistic update
+      // Revert the optimistic update in case of an error
       setState(() {
         _filteredBlogList = _filteredBlogList.map((blog) {
           if (blog['id'] == blogId) {
             final List<dynamic> likes = blog['likes'] ?? [];
-            final List<dynamic> revertedLikes = isLiked
-                ? [...likes, userName]
-                : likes.where((name) => name != userName).toList();
-            return {
-              ...blog,
-              'likes': revertedLikes,
-            };
+            if (isLiked) {
+              blog['likes'] = [...likes, userLikeInfo];
+            } else {
+              blog['likes'] =
+                  likes.where((like) => like['userId'] != userId).toList();
+            }
           }
           return blog;
         }).toList();
@@ -265,6 +277,16 @@ class _BlogListState extends State<BlogList> {
     );
   }
 
+  Future<String> _getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId') ?? '';
+  }
+
+  Future<bool> _getIsPostSaved(String id) async {
+    final userId = await _getUserId();
+    return await _authMethods.isPostSaved(userId, id);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -322,6 +344,7 @@ class _BlogListState extends State<BlogList> {
                             itemCount: _filteredBlogList.length,
                             itemBuilder: (context, index) {
                               final blog = _filteredBlogList[index];
+
                               final Timestamp timestamp = blog['timestamp'];
                               final DateTime dateTime = timestamp.toDate();
                               final String formattedDate =
@@ -335,14 +358,15 @@ class _BlogListState extends State<BlogList> {
                                         child: CircularProgressIndicator());
                                   }
                                   final prefs = snapshot.data!;
-                                  final String userName =
-                                      prefs.getString('name') ?? 'Anonymous';
-                                  final List<dynamic> likes =
-                                      blog['likes'] ?? [];
-                                  final bool isLiked = likes.contains(userName);
-                                  final int likeCount = likes.length;
+                                  final String userId =
+                                      prefs.getString('userId') ?? 'Anonymous';
 
                                   final String authorId = blog['userId'];
+                                  final List<dynamic> likes = blog['likes'] ??
+                                      []; // Default to an empty list if null
+                                  final bool isLiked =
+                                      isLikedByCurrentUser(likes, userId);
+                                  final int likeCount = likes.length;
                                   final String? authorImage =
                                       _profileImages[authorId];
 
@@ -449,7 +473,7 @@ class _BlogListState extends State<BlogList> {
                                                                 .favorite_border,
                                                         color: isLiked
                                                             ? Colors.red
-                                                            : Colors.blueGrey,
+                                                            : Colors.grey,
                                                       ),
                                                       onPressed: () {
                                                         _toggleLike(blog['id'],
@@ -517,42 +541,50 @@ class _BlogListState extends State<BlogList> {
                                                 ),
                                                 IconButton(
                                                   icon: FutureBuilder<bool>(
-                                                    future: _authMethods
-                                                        .isPostSaved(
-                                                            blog['userId'],
-                                                            blog['id']),
+                                                    future: _getIsPostSaved(
+                                                        blog['id']),
                                                     // Check if the post is saved
                                                     builder:
                                                         (context, snapshot) {
-                                                      if (snapshot.hasData &&
-                                                          snapshot.data ==
-                                                              true) {
-                                                        return const Icon(
-                                                          Icons.bookmark,
-                                                          color:
-                                                              Colors.blueGrey,
-                                                        ); // Filled bookmark if saved
+                                                      if (snapshot
+                                                              .connectionState ==
+                                                          ConnectionState
+                                                              .done) {
+                                                        if (snapshot.hasError) {
+                                                          return const Icon(
+                                                              Icons.error);
+                                                        } else if (snapshot
+                                                                .hasData &&
+                                                            snapshot.data ==
+                                                                true) {
+                                                          return const Icon(
+                                                              Icons.bookmark);
+                                                        } else {
+                                                          return const Icon(Icons
+                                                              .bookmark_border_outlined);
+                                                        }
                                                       } else {
-                                                        return const Icon(
-                                                          Icons
-                                                              .bookmark_border_outlined,
-                                                          color:
-                                                              Colors.blueGrey,
-                                                        ); // Outlined bookmark if not saved
+                                                        return const Icon(Icons
+                                                            .bookmark_border_outlined);
                                                       }
                                                     },
                                                   ),
                                                   onPressed: () async {
-                                                    final pref =
-                                                        await SharedPreferences
-                                                            .getInstance();
-                                                    final userId = pref
-                                                        .getString('userId')
-                                                        .toString();
-                                                    await _authMethods.savePost(
-                                                        userId, blog);
-                                                    setState(
-                                                        () {}); // Trigger a rebuild to refresh the bookmark icon
+                                                    final userId =
+                                                        await _getUserId();
+                                                    if (isPostSaved) {
+                                                      await _authMethods.savePost(
+                                                          userId,
+                                                          blog); // Method to remove the saved post
+                                                    } else {
+                                                      await _authMethods.savePost(
+                                                          userId,
+                                                          blog); // Method to save the post
+                                                    }
+                                                    setState(() {
+                                                      isPostSaved =
+                                                          !isPostSaved; // Toggle the saved status
+                                                    });
                                                   },
                                                 ),
                                               ],

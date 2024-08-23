@@ -151,9 +151,6 @@ class _PostEditorState extends State<PostEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final iconColor =
-        theme.brightness == Brightness.dark ? Colors.white : Colors.black;
     const activeIconColor = Colors.orangeAccent;
     const inactiveIconColor = Colors.grey;
 

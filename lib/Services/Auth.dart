@@ -536,7 +536,6 @@ class AuthMethods {
         );
       } catch (e) {
         // Handle errors during decoding
-        print('Error decoding Base64 image: $e');
         return const Icon(
           Icons.error,
           size: 50,
@@ -558,7 +557,6 @@ class AuthMethods {
         return doc.data() as Map<String, dynamic>;
       }).toList();
 
-      print(blogList);
       return blogList;
     } catch (e) {
       if (kDebugMode) {
@@ -574,7 +572,6 @@ class AuthMethods {
       // Get the current user's ID
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('No user is currently signed in.');
         return [];
       }
       final userId = user.uid;
@@ -592,14 +589,13 @@ class AuthMethods {
 
       return blogList;
     } catch (e) {
-      print('Error fetching blog data: $e');
       return [];
     }
   }
 
   //Create comment in any blogs
   Future<void> addComment(String blogId, String commentText) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final user = _auth.currentUser!;
     final userName = user.displayName ?? prefs.getString('name');
@@ -607,7 +603,7 @@ class AuthMethods {
 
     try {
       // Generate a new document reference with a unique ID
-      final commentDoc = _firestore
+      final commentDoc = firestore
           .collection('Blog')
           .doc(blogId)
           .collection('comments')
@@ -623,7 +619,6 @@ class AuthMethods {
       });
     } catch (e) {
       // Handle any errors that occur during the add operation
-      print('Error adding comment: $e');
     }
   }
 
@@ -642,7 +637,6 @@ class AuthMethods {
       // Return the count of documents in the snapshot
       return snapshot.docs.length;
     } catch (e) {
-      print('Error counting comments: $e');
       return 0;
     }
   }
@@ -663,7 +657,6 @@ class AuthMethods {
         await savedPostsRef.set(blog);
       }
     } catch (e) {
-      print('Error saving post: $e');
     }
   }
 
@@ -700,4 +693,36 @@ class AuthMethods {
       return [];
     }
   }
+
+  Future<List<Map<String, String>>> getUsersWhoLiked(String blogId) async {
+    List<Map<String, String>> users = [];
+    try {
+      // Fetch the blog document by its ID
+      var blogSnapshot =
+      await FirebaseFirestore.instance.collection('Blog').doc(blogId).get();
+
+      // Check if the document exists and has a 'likes' array
+      if (blogSnapshot.exists && blogSnapshot.data()!.containsKey('likes')) {
+        List<dynamic> likes = blogSnapshot.data()!['likes'];
+
+        // Process each like entry to extract user details
+        for (var like in likes) {
+          // Assuming each like entry is a map with 'userId' and 'username'
+          if (like is Map<String, dynamic>) {
+            String userId = like['userId'] ?? '';
+            String username = like['userName'] ?? '';
+
+            // Add the user details to the list
+            users.add({
+              'userId': userId,
+              'username': username,
+            });
+          }
+        }
+      }
+    } catch (e) {
+    }
+    return users;
+  }
+
 }

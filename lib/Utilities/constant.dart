@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 final kBoxDecorationStyle = BoxDecoration(
   color: const Color(0xFF6CA8F1),

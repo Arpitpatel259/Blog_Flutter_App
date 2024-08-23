@@ -108,7 +108,10 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(Icons.mode_comment_outlined),
+          icon: const Icon(
+            Icons.mode_comment_outlined,
+            color: Colors.black87,
+          ),
           onPressed: () {
             showModalBottomSheet(
               context: context,
@@ -177,6 +180,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
             return Text(
               "${snapshot.data}",
               style: const TextStyle(
+                color: Colors.black87,
                 fontSize: 14.0,
                 fontWeight: FontWeight.bold,
               ),
@@ -340,12 +344,9 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         children: [
                                           Text(
                                             blog['author'] ?? 'Unknown',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyText1
-                                                  ?.color,
+                                              color: Colors.black87,
                                             ),
                                           ),
                                         ],
@@ -355,8 +356,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                       children: [
                                         IconButton(
                                           icon: const Icon(Icons.edit),
-                                          color:
-                                              Theme.of(context).iconTheme.color,
+                                          color: Colors.black87,
                                           onPressed: () {
                                             Navigator.push(
                                               context,
@@ -372,8 +372,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.delete),
-                                          color:
-                                              Theme.of(context).iconTheme.color,
+                                          color: Colors.black87,
                                           onPressed: () {
                                             _authMethods.deleteBlogByUser(
                                                 context, blog['id']);
@@ -387,13 +386,10 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                 const SizedBox(height: 16),
                                 Text(
                                   blog['title'] ?? 'Blog Title',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .headline6
-                                        ?.color,
+                                    color: Colors.black87,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -413,11 +409,11 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 8.0, horizontal: 12.0),
-                                    color: Colors.black.withOpacity(0.5),
+                                    color: Colors.black.withOpacity(0.1),
                                     child: Text(
                                       blog['content'] ?? 'Blog Content',
-                                      style: TextStyle(
-                                        color: Colors.white,
+                                      style: const TextStyle(
+                                        color: Colors.black87,
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -430,7 +426,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                 const SizedBox(height: 16),
                                 Row(
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceEvenly,
                                   children: [
                                     Row(
                                       children: [
@@ -447,20 +443,20 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         ),
                                         Text(
                                           "$likeCount",
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 14.0,
                                             fontWeight: FontWeight.bold,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodyText1
-                                                ?.color,
+                                            color: Colors.black87,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         buildBlogRow(blog['id']),
                                         const SizedBox(width: 8),
                                         IconButton(
-                                          icon: const Icon(Icons.send_outlined),
+                                          icon: const Icon(
+                                            Icons.send_outlined,
+                                            color: Colors.black87,
+                                          ),
                                           onPressed: () {
                                             Share.share(
                                                 '${blog['title']}\nRead more at: ${blog['content']}');
@@ -468,23 +464,17 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         ),
                                       ],
                                     ),
-                                    IconButton(
-                                      icon: const Icon(
-                                          Icons.bookmark_border_outlined),
-                                      onPressed: () {},
-                                    ),
                                   ],
                                 ),
-                                Text(
-                                  formattedDate,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .caption
-                                        ?.color,
+                                Center(
+                                  child: Text(
+                                    formattedDate,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black87,
+                                    ),
                                   ),
-                                ),
+                                )
                               ],
                             ),
                           ),

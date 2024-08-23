@@ -56,7 +56,7 @@ class _UserLoginScreen extends State<UserLoginScreen> {
             decoration: InputDecoration(
               fillColor: Theme.of(context).colorScheme.background,
               filled: true,
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.only(top: 14.0),
               prefixIcon: Icon(Icons.email,
                   color: Theme.of(context).colorScheme.primary),
@@ -334,7 +334,7 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                   decoration: InputDecoration(
                     fillColor: Theme.of(context).colorScheme.background,
                     filled: true,
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     contentPadding: const EdgeInsets.only(top: 14.0),
                     prefixIcon: Icon(Icons.email,
                         color: Theme.of(context).colorScheme.primary),

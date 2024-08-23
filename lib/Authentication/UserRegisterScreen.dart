@@ -147,12 +147,15 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
               onPressed: () => setState(() => _isObscure1 = !_isObscure1),
             ),
             validator: (val) {
-              if (val == null || val.isEmpty)
+              if (val == null || val.isEmpty) {
                 return 'Please Enter Confirm Password';
-              if (!val.isValidPassword)
+              }
+              if (!val.isValidPassword) {
                 return 'Please Enter Valid Confirm Password';
-              if (val != _passwordController.text)
+              }
+              if (val != _passwordController.text) {
                 return 'Password Do Not Match!';
+              }
               return null;
             },
           ),

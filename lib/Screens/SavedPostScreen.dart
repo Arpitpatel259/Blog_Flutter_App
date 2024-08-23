@@ -73,6 +73,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                     final String? pImage = _profileImages[authorId];
 
                     return Card(
+                      color: Colors.grey[200],
                       margin: const EdgeInsets.all(8.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15.0),
@@ -98,6 +99,9 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                             subtitle: Text(
                               post['content'] ?? 'No Content',
                               maxLines: 3,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                             trailing: IconButton(
