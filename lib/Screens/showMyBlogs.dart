@@ -449,20 +449,21 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                             color: Colors.black87,
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        buildBlogRow(blog['id']),
-                                        const SizedBox(width: 8),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.send_outlined,
-                                            color: Colors.black87,
-                                          ),
-                                          onPressed: () {
-                                            Share.share(
-                                                '${blog['title']}\nRead more at: ${blog['content']}');
-                                          },
-                                        ),
                                       ],
+                                    ),
+                                    buildBlogRow(blog['id']),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.send_outlined,
+                                        color: Colors.black87,
+                                      ),
+                                      onPressed: () {
+                                        _authMethods.shareMessage(
+                                            blog['title'],
+                                            blog['content'],
+                                            blog['author'],
+                                            blog['timestamp']);
+                                      },
                                     ),
                                   ],
                                 ),

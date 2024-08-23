@@ -104,7 +104,8 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              Share.share('${blog['title']}\nRead more at: ${blog['content']}');
+              authMethods.shareMessage(blog['title'], blog['content'],
+                  blog['author'], blog['timestamp']);
             },
           ),
         ],
@@ -210,9 +211,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     IconButton(
                       icon: const Icon(Icons.thumb_up),
                       onPressed: () {
-                        _showUsersList(
-                            context,
-                            "Likes",
+                        _showUsersList(context, "Likes",
                             authMethods.getUsersWhoLiked(blog['id']));
                       },
                     ),

@@ -78,57 +78,84 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15.0),
                       ),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: SizedBox(
-                              width: 50,
-                              height: 50,
-                              child: ClipOval(
-                                child: authMethods.buildProfileImage(pImage),
-                              ),
-                            ),
-                            title: Text(
-                              post['title'] ?? 'No Title',
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                            subtitle: Text(
-                              post['content'] ?? 'No Content',
-                              maxLines: 3,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                Icons.bookmark,
-                                color: Colors.blueGrey,
-                              ),
-                              onPressed: () async {
-                                // Add or remove the post from saved posts
-                                await authMethods.savePost(widget.userId, post);
-                                // Refresh the saved posts list
-                                await _loadSavedPosts();
-                              },
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => BlogDetailScreen(
-                                    blog: post,
-                                    image: pImage,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        // Add padding around the entire post card
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 50,
+                                  height: 50,
+                                  child: ClipOval(
+                                    child:
+                                        authMethods.buildProfileImage(pImage),
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
+                                const SizedBox(width: 10),
+                                // Add spacing between the image and text
+                                Expanded(
+                                  child: Text(
+                                    post['author'] ?? 'No Author',
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            // Add spacing between the author and title
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              // Remove default padding from ListTile
+                              title: Text(
+                                post['title'] ?? 'No Title',
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              subtitle: Text(
+                                post['content'] ?? 'No Content',
+                                maxLines: 3,
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.bookmark,
+                                  color: Colors.blueGrey,
+                                ),
+                                onPressed: () async {
+                                  // Add or remove the post from saved posts
+                                  await authMethods.savePost(
+                                      widget.userId, post);
+                                  // Refresh the saved posts list
+                                  await _loadSavedPosts();
+                                },
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BlogDetailScreen(
+                                      blog: post,
+                                      image: pImage,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

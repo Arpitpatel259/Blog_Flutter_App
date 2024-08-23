@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Services/Auth.dart';
@@ -533,8 +532,11 @@ class _BlogListState extends State<BlogList> {
                                                         color: Colors.blueGrey,
                                                       ),
                                                       onPressed: () {
-                                                        Share.share(
-                                                            '${blog['title']}\nRead more at: ${blog['content']}');
+                                                        _authMethods.shareMessage(
+                                                            blog['title'],
+                                                            blog['content'],
+                                                            blog['author'],
+                                                            blog['timestamp']);
                                                       },
                                                     ),
                                                   ],
@@ -558,14 +560,23 @@ class _BlogListState extends State<BlogList> {
                                                             snapshot.data ==
                                                                 true) {
                                                           return const Icon(
-                                                              Icons.bookmark);
+                                                            Icons.bookmark,
+                                                            color:
+                                                                Colors.blueGrey,
+                                                          );
                                                         } else {
-                                                          return const Icon(Icons
-                                                              .bookmark_border_outlined);
+                                                          return const Icon(
+                                                              Icons
+                                                                  .bookmark_border_outlined,
+                                                              color: Colors
+                                                                  .blueGrey);
                                                         }
                                                       } else {
-                                                        return const Icon(Icons
-                                                            .bookmark_border_outlined);
+                                                        return const Icon(
+                                                            Icons
+                                                                .bookmark_border_outlined,
+                                                            color: Colors
+                                                                .blueGrey);
                                                       }
                                                     },
                                                   ),

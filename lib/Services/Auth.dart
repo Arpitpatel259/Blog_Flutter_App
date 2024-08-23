@@ -10,6 +10,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
     show Uint8List, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -656,8 +658,7 @@ class AuthMethods {
       } else {
         await savedPostsRef.set(blog);
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<bool> isPostSaved(String userId, String postId) async {
@@ -699,7 +700,7 @@ class AuthMethods {
     try {
       // Fetch the blog document by its ID
       var blogSnapshot =
-      await FirebaseFirestore.instance.collection('Blog').doc(blogId).get();
+          await FirebaseFirestore.instance.collection('Blog').doc(blogId).get();
 
       // Check if the document exists and has a 'likes' array
       if (blogSnapshot.exists && blogSnapshot.data()!.containsKey('likes')) {
@@ -720,9 +721,26 @@ class AuthMethods {
           }
         }
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     return users;
   }
 
+  void shareMessage(String T, String C, String A, Timestamp timestamp) {
+    final String title = T;
+    final String content = C;
+    final String author = A;
+
+    final String shareMessage = '''
+🌟 *$title* 🌟
+
+📝 *Author*: $author
+📝 *Content*: $content
+📅 *Published on*: ${DateFormat.yMMMd().format(timestamp.toDate())}
+
+
+#AwesomeBlog #MustRead #FlutterBlog
+            ''';
+
+    Share.share(shareMessage);
+  }
 }
