@@ -151,9 +151,6 @@ class _PostEditorState extends State<PostEditor> {
 
   @override
   Widget build(BuildContext context) {
-    const activeIconColor = Colors.orangeAccent;
-    const inactiveIconColor = Colors.grey;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -260,7 +257,7 @@ class _PostEditorState extends State<PostEditor> {
                   children: [
                     IconButton(
                       icon: Icon(Icons.format_bold,
-                          color: _isBold ? activeIconColor : inactiveIconColor),
+                          color: _isBold ? Colors.blue : Colors.grey),
                       onPressed: () {
                         setState(() {
                           _isBold = !_isBold;
@@ -269,8 +266,7 @@ class _PostEditorState extends State<PostEditor> {
                     ),
                     IconButton(
                       icon: Icon(Icons.format_italic,
-                          color:
-                              _isItalic ? activeIconColor : inactiveIconColor),
+                          color: _isItalic ? Colors.blue : Colors.grey),
                       onPressed: () {
                         setState(() {
                           _isItalic = !_isItalic;
@@ -279,9 +275,7 @@ class _PostEditorState extends State<PostEditor> {
                     ),
                     IconButton(
                       icon: Icon(Icons.format_underline,
-                          color: _isUnderline
-                              ? activeIconColor
-                              : inactiveIconColor),
+                          color: _isUnderline ? Colors.blue : Colors.grey),
                       onPressed: () {
                         setState(() {
                           _isUnderline = !_isUnderline;
@@ -290,9 +284,7 @@ class _PostEditorState extends State<PostEditor> {
                     ),
                     IconButton(
                       icon: Icon(Icons.format_strikethrough_outlined,
-                          color: _isStrikethrough
-                              ? activeIconColor
-                              : inactiveIconColor),
+                          color: _isStrikethrough ? Colors.blue : Colors.grey),
                       onPressed: () {
                         setState(() {
                           _isStrikethrough = !_isStrikethrough;

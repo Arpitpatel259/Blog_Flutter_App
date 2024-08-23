@@ -182,7 +182,7 @@ class AuthMethods {
           'name': name,
           'email': email,
           'mobile': mobile,
-          'imgUrl': null,
+          'imgUrl': "",
           'password': password,
         };
 
@@ -287,51 +287,95 @@ class AuthMethods {
   }
 
   //Reset Password Using Link
-  Future<void> resetPassword(String emailId, BuildContext context) async {
+  Future<void> resetPasswordAndNotify(
+      String email, BuildContext context) async {
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailId);
-      // ignore: use_build_context_synchronously
+      // Directly query Firestore to check if the email exists
+      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('User')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (userSnapshot.docs.isEmpty) {
+        // If no document is found, inform the user
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No user found for that email in Firestore.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Since the user exists in Firestore, we can proceed to send a reset email
+      // Send password reset email
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      // Update the Firestore document to indicate a password reset was requested
+      DocumentReference userDocRef = userSnapshot.docs.first.reference;
+
+      await userDocRef.update({
+        'passwordResetRequested': true,
+        'lastPasswordResetRequest': FieldValue.serverTimestamp(),
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Password Reset Email has been sent! Please Login',
-          ),
+          content: const Text('Password reset email sent! Check your inbox.'),
           backgroundColor: Colors.teal,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: 'Dismiss',
             disabledTextColor: Colors.white,
             textColor: Colors.yellow,
-            onPressed: () {
-              //Do whatever you want
-            },
+            onPressed: () {},
           ),
         ),
       );
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'No user found for that email.',
-            ),
-            backgroundColor: Colors.teal,
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Dismiss',
-              disabledTextColor: Colors.white,
-              textColor: Colors.yellow,
-              onPressed: () {
-                //Do whatever you want
-              },
-            ),
-          ),
-        );
+      String errorMessage;
+      if (e.code == 'invalid-email') {
+        errorMessage = "Invalid Email Provided by You";
+      } else if (e.code == 'user-not-found') {
+        errorMessage = "No User Found for that Email";
+      } else {
+        errorMessage = "An unknown error occurred";
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {},
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              'An error occurred while processing your request. Please try again.'),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            disabledTextColor: Colors.white,
+            textColor: Colors.yellow,
+            onPressed: () {},
+          ),
+        ),
+      );
     }
   }
 
-  //Logout Your Session
+//aj.vekariya123@gmail.com
+
+//Logout Your Session
   Future<void> logout(BuildContext context) async {
     try {
       // Sign out from Google
@@ -430,13 +474,13 @@ class AuthMethods {
     }
   }
 
-  //Convert Image
+//Convert Image
   Future<String> _convertImageToBase64(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
     return base64Encode(bytes);
   }
 
-  //Delete Blog Which is Post by user
+//Delete Blog Which is Post by user
   Future<void> deleteBlogByUser(BuildContext context, String blogId) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
@@ -503,7 +547,7 @@ class AuthMethods {
     }
   }
 
-  //To show Profile images
+//To show Profile images
   Widget buildProfileImage(String? base64Image) {
     if (base64Image == null || base64Image.isEmpty) {
       // Handle the case where no image is provided
@@ -547,7 +591,7 @@ class AuthMethods {
     }
   }
 
-  //Get all blogs from DB
+//Get all blogs from DB
   Future<List<Map<String, dynamic>>> getAllBlogs() async {
     try {
       final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -568,7 +612,7 @@ class AuthMethods {
     }
   }
 
-  //Get that blogs which is post by current user
+//Get that blogs which is post by current user
   Future<List<Map<String, dynamic>>> getCurrentUserBlogs() async {
     try {
       // Get the current user's ID
@@ -595,7 +639,7 @@ class AuthMethods {
     }
   }
 
-  //Create comment in any blogs
+//Create comment in any blogs
   Future<void> addComment(String blogId, String commentText) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -624,7 +668,7 @@ class AuthMethods {
     }
   }
 
-  //Create a count of comment
+//Create a count of comment
   Future<int> countComments(String blogId) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
 

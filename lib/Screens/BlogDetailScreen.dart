@@ -205,162 +205,169 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.thumb_up),
-                      onPressed: () {
-                        _showUsersList(context, "Likes",
-                            authMethods.getUsersWhoLiked(blog['id']));
-                      },
-                    ),
-                    Text(
-                      likeCount == 1 ? '$likeCount Like' : '$likeCount Likes',
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyText2?.color,
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.thumb_up),
+                        onPressed: () {
+                          _showUsersList(context, "Likes",
+                              authMethods.getUsersWhoLiked(blog['id']));
+                        },
                       ),
-                    ),
-                    const SizedBox(width: 30),
-                    IconButton(
-                      icon: const Icon(Icons.comment),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (BuildContext context) {
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom:
-                                    MediaQuery.of(context).viewInsets.bottom,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(10.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: StreamBuilder<QuerySnapshot>(
-                                        stream: _firestore
-                                            .collection('Blog')
-                                            .doc(blog['id'])
-                                            .collection('comments')
-                                            .orderBy('timestamp',
-                                                descending: true)
-                                            .snapshots(),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.connectionState ==
-                                              ConnectionState.waiting) {
-                                            return const Center(
-                                                child:
-                                                    CircularProgressIndicator());
-                                          }
-
-                                          if (!snapshot.hasData ||
-                                              snapshot.data!.docs.isEmpty) {
-                                            return const Center(
-                                                child:
-                                                    Text('No comments yet.'));
-                                          }
-
-                                          final comments = snapshot.data!.docs;
-
-                                          return ListView.builder(
-                                            shrinkWrap: true,
-                                            physics:
-                                                const NeverScrollableScrollPhysics(),
-                                            itemCount: comments.length,
-                                            itemBuilder: (context, index) {
-                                              final commentData =
-                                                  comments[index].data()
-                                                      as Map<String, dynamic>;
-                                              final userName =
-                                                  commentData['userName'] ??
-                                                      'Anonymous';
-                                              final commentText =
-                                                  commentData['commentText'] ??
-                                                      '';
-
-                                              final timestamp =
-                                                  commentData['timestamp'];
-                                              final DateTime? dateTime =
-                                                  timestamp != null
-                                                      ? (timestamp as Timestamp)
-                                                          .toDate()
-                                                      : null;
-                                              final String formattedDate =
-                                                  dateTime != null
-                                                      ? DateFormat.yMMMd()
-                                                          .format(dateTime)
-                                                      : '';
-
-                                              final String? authorId =
-                                                  commentData['userId'];
-                                              _getImage(authorId!);
-                                              final String? authorImage =
-                                                  _profileImages[authorId];
-
-                                              return ListTile(
-                                                leading: ClipOval(
-                                                  child: Container(
-                                                    color: Colors.blueGrey,
-                                                    child: authMethods
-                                                        .buildProfileImage(
-                                                            authorImage),
-                                                  ),
-                                                ),
-                                                title: Text(
-                                                  userName,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                subtitle: Text(
-                                                  commentText,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                                trailing: Text(
-                                                  formattedDate,
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
+                      Text(
+                        likeCount == 1 ? '$likeCount Like' : '$likeCount Likes',
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyText2?.color,
+                        ),
+                      ),
+                      const SizedBox(width: 30),
+                      IconButton(
+                        icon: const Icon(Icons.comment),
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (BuildContext context) {
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom,
                                 ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                    FutureBuilder<int>(
-                      future: authMethods.countComments(blog['id']),
-                      builder:
-                          (BuildContext context, AsyncSnapshot<int> snapshot) {
-                        if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}');
-                        }
+                                child: Container(
+                                  padding: const EdgeInsets.all(10.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: StreamBuilder<QuerySnapshot>(
+                                          stream: _firestore
+                                              .collection('Blog')
+                                              .doc(blog['id'])
+                                              .collection('comments')
+                                              .orderBy('timestamp',
+                                                  descending: true)
+                                              .snapshots(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
 
-                        return Text(
-                          "${snapshot.data} comments",
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyText2?.color,
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                                            if (!snapshot.hasData ||
+                                                snapshot.data!.docs.isEmpty) {
+                                              return const Center(
+                                                  child:
+                                                      Text('No comments yet.'));
+                                            }
+
+                                            final comments =
+                                                snapshot.data!.docs;
+
+                                            return ListView.builder(
+                                              shrinkWrap: true,
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              itemCount: comments.length,
+                                              itemBuilder: (context, index) {
+                                                final commentData =
+                                                    comments[index].data()
+                                                        as Map<String, dynamic>;
+                                                final userName =
+                                                    commentData['userName'] ??
+                                                        'Anonymous';
+                                                final commentText = commentData[
+                                                        'commentText'] ??
+                                                    '';
+
+                                                final timestamp =
+                                                    commentData['timestamp'];
+                                                final DateTime? dateTime =
+                                                    timestamp != null
+                                                        ? (timestamp
+                                                                as Timestamp)
+                                                            .toDate()
+                                                        : null;
+                                                final String formattedDate =
+                                                    dateTime != null
+                                                        ? DateFormat.yMMMd()
+                                                            .format(dateTime)
+                                                        : '';
+
+                                                final String? authorId =
+                                                    commentData['userId'];
+                                                _getImage(authorId!);
+                                                final String? authorImage =
+                                                    _profileImages[authorId];
+
+                                                return ListTile(
+                                                  leading: ClipOval(
+                                                    child: Container(
+                                                      color: Colors.blueGrey,
+                                                      child: authMethods
+                                                          .buildProfileImage(
+                                                              authorImage),
+                                                    ),
+                                                  ),
+                                                  title: Text(
+                                                    userName,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                  subtitle: Text(
+                                                    commentText,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                  trailing: Text(
+                                                    formattedDate,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      FutureBuilder<int>(
+                        future: authMethods.countComments(blog['id']),
+                        builder: (BuildContext context,
+                            AsyncSnapshot<int> snapshot) {
+                          if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          }
+
+                          return Text(
+                            "${snapshot.data} comments",
+                            style: TextStyle(
+                              color:
+                                  Theme.of(context).textTheme.bodyText2?.color,
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -347,10 +347,31 @@ class _UserLoginScreen extends State<UserLoginScreen> {
                 const SizedBox(height: defaultPadding),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (formKey.currentState!.validate()) {}
+                    onPressed: () async {
+                      // Replace this with the actual email input from the user
+                      String email = emailController.text.toString();
+
+                      if (email.isNotEmpty) {
+                        await AuthMethods()
+                            .resetPasswordAndNotify(email, context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                const Text('Please enter your email address.'),
+                            backgroundColor: Colors.teal,
+                            behavior: SnackBarBehavior.floating,
+                            action: SnackBarAction(
+                              label: 'Dismiss',
+                              disabledTextColor: Colors.white,
+                              textColor: Colors.yellow,
+                              onPressed: () {},
+                            ),
+                          ),
+                        );
+                      }
                     },
-                    child: const Text('Reset Password'),
+                    child: const Text("Forgot Password"),
                   ),
                 ),
               ],
