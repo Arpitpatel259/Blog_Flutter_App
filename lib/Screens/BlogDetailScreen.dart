@@ -5,7 +5,6 @@ import 'package:blog/Services/Auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 
 class BlogDetailScreen extends StatefulWidget {
   final Map<String, dynamic> blog; // Required parameter
