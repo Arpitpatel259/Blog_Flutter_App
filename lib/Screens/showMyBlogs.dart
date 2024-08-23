@@ -375,6 +375,27 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                           onPressed: () {
                                             _authMethods.deleteBlogByUser(
                                                 context, blog['id']);
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: const Text(
+                                                    'Blog Deleted Sucessfully.'),
+                                                backgroundColor: Colors.teal,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                action: SnackBarAction(
+                                                  label: 'Dismiss',
+                                                  disabledTextColor:
+                                                      Colors.white,
+                                                  textColor: Colors.yellow,
+                                                  onPressed: () {
+                                                    // Do whatever you want
+                                                  },
+                                                ),
+                                              ),
+                                            );
+
                                             _refreshBlogs();
                                           },
                                         ),

@@ -485,6 +485,7 @@ class AuthMethods {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
       await firestore.collection('Blog').doc(blogId).delete();
+
     } catch (e) {}
   }
 

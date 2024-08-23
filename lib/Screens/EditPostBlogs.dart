@@ -60,17 +60,17 @@ class _PostEditorState extends State<PostEditor> {
     } else if (mediaFile != null) {
       return kIsWeb
           ? Image.network(
-              mediaFile.path,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            )
+        mediaFile.path,
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      )
           : Image.file(
-              File(mediaFile.path),
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            );
+        File(mediaFile.path),
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
     } else {
       return Image.asset(
         'assets/logos/blog_sample.png',
@@ -110,7 +110,7 @@ class _PostEditorState extends State<PostEditor> {
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainPage()),
-        (route) => false,
+            (route) => false,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -145,12 +145,15 @@ class _PostEditorState extends State<PostEditor> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const MainPage()),
-      (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    const activeIconColor = Colors.orangeAccent;
+    const inactiveIconColor = Colors.grey;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -159,6 +162,15 @@ class _PostEditorState extends State<PostEditor> {
         ),
         backgroundColor: Colors.blueGrey,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.image, color: Colors.orangeAccent),
+            onPressed: () async {
+              File? imageFile = await _pickImage();
+              setState(() {
+                _mediaFile = imageFile;
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.upload_sharp, color: Colors.white),
             onPressed: () async {
@@ -238,8 +250,8 @@ class _PostEditorState extends State<PostEditor> {
                   decoration: _isUnderline
                       ? TextDecoration.underline
                       : _isStrikethrough
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
                 ),
                 decoration: InputDecoration(
                   labelText: 'Content',
@@ -250,59 +262,6 @@ class _PostEditorState extends State<PostEditor> {
                 ),
               ),
               const SizedBox(height: 8.0),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.format_bold,
-                          color: _isBold ? Colors.blue : Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _isBold = !_isBold;
-                        });
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.format_italic,
-                          color: _isItalic ? Colors.blue : Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _isItalic = !_isItalic;
-                        });
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.format_underline,
-                          color: _isUnderline ? Colors.blue : Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _isUnderline = !_isUnderline;
-                        });
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.format_strikethrough_outlined,
-                          color: _isStrikethrough ? Colors.blue : Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _isStrikethrough = !_isStrikethrough;
-                        });
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.image, color: Colors.orangeAccent),
-                      onPressed: () async {
-                        File? imageFile = await _pickImage();
-                        setState(() {
-                          _mediaFile = imageFile;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
