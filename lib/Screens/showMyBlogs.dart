@@ -318,8 +318,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                         final List<dynamic> likers = blog['likes'] ?? [];
                         final int likeCount = likers.length;
 
-                        final authorImage = _auth.currentUser?.photoURL ??
-                            pref.getString('imgUrl');
+                        final authorImage = pref.getString('imgUrl');
 
                         return Card(
                           margin: const EdgeInsets.all(8.0),

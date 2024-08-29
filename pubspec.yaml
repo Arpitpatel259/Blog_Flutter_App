@@ -50,9 +50,13 @@ dependencies:
   permission_handler: ^11.3.1
 
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -60,6 +64,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+
+flutter_launcher_icons:
+   android: "launcher_icon"
+   ios: true
+   image_path: "assets/logos/app.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -81,6 +90,7 @@ flutter:
     - assets/logos/google.png
     - assets/logos/blog_sample.png
     - assets/logos/logo.png
+    - assets/logos/app.png
     - assets/logos/
 
     # An image asset can refer to one or more resolution-specific "variants", see
