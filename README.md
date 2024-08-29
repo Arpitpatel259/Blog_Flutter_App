@@ -24,7 +24,7 @@ Before you begin, ensure you have the following installed:
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/yourusername/FlutterBlog.git
+    git clone https://github.com/Arpitpatel259/FlutterBlog.git
     cd FlutterBlog
     ```
 
@@ -67,5 +67,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 💬 Contact
 
-- **GitHub:** [@yourusername](https://github.com/yourusername)
-- **Email:** youremail@example.com
+- **GitHub:** [@Arpit Vekariya](https://github.com/Arpitpatel259)
