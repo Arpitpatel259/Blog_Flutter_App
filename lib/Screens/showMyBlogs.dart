@@ -23,7 +23,6 @@ class showMyBlogPost extends StatefulWidget {
 class _showMyBlogPostState extends State<showMyBlogPost> {
   Future<List<Map<String, dynamic>>>? _futureBlogs;
   final AuthMethods _authMethods = AuthMethods();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   late SharedPreferences pref;
 
   String? userId;
