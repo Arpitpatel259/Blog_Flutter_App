@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:blog/Screens/EditPostBlogs.dart';
 import 'package:blog/Services/Auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -122,7 +121,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
                           'Comments',
-                          style: Theme.of(context).textTheme.headline6,
+                          style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ),
                       Expanded(
@@ -264,7 +263,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.headline6?.color,
+                  color: Theme.of(context).textTheme.headlineSmall?.color,
                 ),
               ),
               Text(
@@ -273,7 +272,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyText1?.color,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 20),
@@ -286,7 +285,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.headline6?.color,
+                    color: Theme.of(context).textTheme.headlineSmall?.color,
                   ),
                 ),
               ),

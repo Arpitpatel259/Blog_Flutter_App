@@ -119,7 +119,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.headline6?.color,
+                color: Theme.of(context).textTheme.headlineSmall?.color,
               ),
             ),
             const SizedBox(height: 8.0),
@@ -128,13 +128,13 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.subtitle1?.color,
+                color: Theme.of(context).textTheme.titleMedium?.color,
               ),
             ),
             Text(
               formattedDate,
               style: TextStyle(
-                color: Theme.of(context).textTheme.subtitle1?.color,
+                color: Theme.of(context).textTheme.titleMedium?.color,
               ),
             ),
             const SizedBox(height: 16),
@@ -196,7 +196,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                 style: TextStyle(
                   fontSize: 20.0,
                   height: 2,
-                  color: Theme.of(context).textTheme.bodyText1?.color,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
                 textAlign: TextAlign.justify,
               ),
@@ -219,7 +219,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                       Text(
                         likeCount == 1 ? '$likeCount Like' : '$likeCount Likes',
                         style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyText2?.color,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ),
                       const SizedBox(width: 30),
@@ -359,7 +359,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                             "${snapshot.data} comments",
                             style: TextStyle(
                               color:
-                                  Theme.of(context).textTheme.bodyText2?.color,
+                                  Theme.of(context).textTheme.bodySmall?.color,
                               fontSize: 14.0,
                               fontWeight: FontWeight.bold,
                             ),
