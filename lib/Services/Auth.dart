@@ -15,6 +15,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import '../Screens/under_maintainance.dart';
+
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -54,15 +56,29 @@ class AuthMethods {
         );
       }
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool? isLoggedIn = prefs.getBool('isLoggedIn');
+      // Check if the app is under maintenance
+      DocumentSnapshot maintenanceSnapshot = await FirebaseFirestore.instance
+          .collection('Settings')
+          .doc('appStatus')
+          .get();
 
-      // Return the appropriate widget based on the login status
-      if (isLoggedIn == true) {
-        return const MainPage();
+      bool isAppUnderMaintenance = maintenanceSnapshot['isAppUnderMaintenance'] ?? false;
+
+      if (isAppUnderMaintenance) {
+        return const UnderMaintainance(); // Define this screen to show maintenance message
       } else {
-        return const SplashScreen();
+        // Check login status if app is not under maintenance
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        bool? isLoggedIn = prefs.getBool('isLoggedIn');
+
+        // Return the appropriate widget based on the login status
+        if (isLoggedIn == true) {
+          return const MainPage();
+        } else {
+          return const SplashScreen();
+        }
       }
+
     } catch (e) {
       if (kDebugMode) {
         print('Error checking login status: $e');
@@ -78,6 +94,7 @@ class AuthMethods {
       );
     }
   }
+
 
   // Google Login
   Future<void> signInWithGoogle(BuildContext context) async {

@@ -48,6 +48,8 @@ dependencies:
   image_picker: ^1.0.8
   flutter_platform_widgets: ^6.1.0
   permission_handler: ^11.3.1
+  cached_network_image: ^3.3.1
+  lottie: ^3.1.2
 
 dev_dependencies:
   flutter_test:
@@ -88,6 +90,8 @@ flutter:
     - assets/logos/logo.png
     - assets/logos/app.png
     - assets/logos/
+    - assets/animations/
+    - assets/animations/AppUnderMaintainance.json
 
     # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

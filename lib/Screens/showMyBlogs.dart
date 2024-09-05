@@ -234,48 +234,75 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
           padding: const EdgeInsets.all(10.0),
           child: Column(
             children: [
-              const SizedBox(height: 10),
-              Center(
-                child: GestureDetector(
-                  onTap: () async {
-                    File? imageFile = await _pickImage();
-                    if (imageFile != null) {
-                      setState(() {
-                        _mediaFile = imageFile;
-                      });
-                      await _uploadProfileImage(_mediaFile);
-                    }
-                  },
-                  child: ClipOval(
-                    clipBehavior: Clip.hardEdge,
-                    child: SizedBox(
-                      width: 120,
-                      height: 120,
-                      child: _authMethods.buildProfileImage(profileImageUrl),
-                    ),
+              Card(
+                elevation: 4, // Shadow effect
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15), // Rounded corners
+                ),
+                margin: const EdgeInsets.all(16), // Margin around the card
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          File? imageFile = await _pickImage();
+                          if (imageFile != null) {
+                            setState(() {
+                              _mediaFile = imageFile;
+                            });
+                            await _uploadProfileImage(_mediaFile);
+                          }
+                        },
+                        child: ClipOval(
+                          clipBehavior: Clip.hardEdge,
+                          child: SizedBox(
+                            width: 80,
+                            height: 80,
+                            child:
+                                _authMethods.buildProfileImage(profileImageUrl),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              name ?? 'No Name Provided',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Spacing between name and email
+                            Text(
+                              email ?? 'No Email Provided',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                name ?? 'No Name Provided',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.headlineSmall?.color,
-                ),
-              ),
-              Text(
-                email ?? 'No Email Provided',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Container(
                 alignment: Alignment.centerLeft,
                 padding: const EdgeInsets.all(15.0),
@@ -319,8 +346,11 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                         final authorImage = pref.getString('imgUrl');
 
                         return Card(
-                          margin: const EdgeInsets.all(8.0),
-                          color: Colors.grey[200],
+                          margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                          elevation: 5,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15), // Rounded corners
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -329,19 +359,18 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                 Row(
                                   children: [
                                     ClipOval(
-                                      child: _authMethods
-                                          .buildProfileImage(authorImage),
+                                      child: _authMethods.buildProfileImage(authorImage),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 12), // Increased spacing for better alignment
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            blog['author'] ?? 'Unknown',
+                                            blog['author'] ?? 'Unknown Author',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
+                                              fontSize: 16, // Slightly larger font for emphasis
                                               color: Colors.black87,
                                             ),
                                           ),
@@ -352,13 +381,12 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                       children: [
                                         IconButton(
                                           icon: const Icon(Icons.edit),
-                                          color: Colors.black87,
+                                          color: Colors.blueAccent,
                                           onPressed: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) =>
-                                                    PostEditor(
+                                                builder: (context) => PostEditor(
                                                   isEdit: true,
                                                   blog: blog,
                                                 ),
@@ -368,31 +396,21 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.delete),
-                                          color: Colors.black87,
+                                          color: Colors.redAccent,
                                           onPressed: () {
-                                            _authMethods.deleteBlogByUser(
-                                                context, blog['id']);
-
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
+                                            _authMethods.deleteBlogByUser(context, blog['id']);
+                                            ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(
-                                                content: const Text(
-                                                    'Blog Deleted Sucessfully.'),
+                                                content: const Text('Blog Deleted Successfully.'),
                                                 backgroundColor: Colors.teal,
-                                                behavior:
-                                                    SnackBarBehavior.floating,
+                                                behavior: SnackBarBehavior.floating,
                                                 action: SnackBarAction(
                                                   label: 'Dismiss',
-                                                  disabledTextColor:
-                                                      Colors.white,
                                                   textColor: Colors.yellow,
-                                                  onPressed: () {
-                                                    // Do whatever you want
-                                                  },
+                                                  onPressed: () {},
                                                 ),
                                               ),
                                             );
-
                                             _refreshBlogs();
                                           },
                                         ),
@@ -404,11 +422,10 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                 Text(
                                   blog['title'] ?? 'Blog Title',
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 20, // Larger title font for emphasis
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 8),
                                 GestureDetector(
@@ -424,37 +441,33 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                     );
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0, horizontal: 12.0),
-                                    color: Colors.black.withOpacity(0.1),
+                                    padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 14.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                     child: Text(
                                       blog['content'] ?? 'Blog Content',
                                       style: const TextStyle(
                                         color: Colors.black87,
                                         fontSize: 15,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w400, // Normal weight for content
                                       ),
-                                      maxLines: 5,
-                                      overflow: TextOverflow.fade,
-                                      textAlign: TextAlign.center,
+                                      maxLines: 4,
+                                      overflow: TextOverflow.ellipsis, // Ellipsis for long content
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
                                         IconButton(
                                           icon: Icon(
-                                            likeCount > 0
-                                                ? Icons.favorite
-                                                : Icons.favorite_border,
-                                            color: likeCount > 0
-                                                ? Colors.red
-                                                : null,
+                                            likeCount > 0 ? Icons.favorite : Icons.favorite_border,
+                                            color: likeCount > 0 ? Colors.red : Colors.grey,
                                           ),
                                           onPressed: () {},
                                         ),
@@ -471,33 +484,34 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                     buildBlogRow(blog['id']),
                                     IconButton(
                                       icon: const Icon(
-                                        Icons.send_outlined,
+                                        Icons.share_outlined,
                                         color: Colors.black87,
                                       ),
                                       onPressed: () {
                                         _authMethods.shareMessage(
-                                            blog['title'],
-                                            blog['content'],
-                                            blog['author'],
-                                            blog['timestamp']);
+                                          blog['title'],
+                                          blog['content'],
+                                          blog['author'],
+                                          blog['timestamp'],
+                                        );
                                       },
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 8),
                                 Center(
                                   child: Text(
                                     formattedDate,
                                     style: const TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.black87,
+                                      fontSize: 12, // Smaller font for date
+                                      color: Colors.grey, // Grey color for subtle appearance
                                     ),
                                   ),
-                                )
+                                ),
                               ],
                             ),
                           ),
-                        );
-                      },
+                        );                      },
                     );
                   }
                 },
