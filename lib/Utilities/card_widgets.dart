@@ -1,10 +1,12 @@
+import 'package:blog/Model/bloglist_model.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Services/Auth.dart';
-import '../Screens/BlogDetailScreen.dart';
+import '../Authentication/authentication.dart';
+import '../Screens/blog_details_screen.dart';
+import 'constant.dart';
 
 class BlogList extends StatefulWidget {
   const BlogList({super.key});
@@ -17,8 +19,8 @@ class _BlogListState extends State<BlogList> {
   final AuthMethods _authMethods = AuthMethods();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  List<Map<String, dynamic>> _blogList = [];
-  List<Map<String, dynamic>> _filteredBlogList = [];
+  List<BlogModel> _blogList = [];
+  List<BlogModel> _filteredBlogList = [];
   bool _isLoading = false;
   final Map<String, String> _profileImages = {};
   String _selectedCategory = 'All'; // Initially show all categories
@@ -36,22 +38,37 @@ class _BlogListState extends State<BlogList> {
   @override
   void initState() {
     super.initState();
+    _getUserId();
     _refreshBlogs();
   }
 
   Future<void> _refreshBlogs() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
     setState(() {
       _isLoading = true;
     });
 
     final blogs = await _authMethods.getAllBlogs();
+    savedPostList =
+        await _authMethods.getSavedPosts(pref.getString("userId") ?? "");
+
+    blogs.map((e) => savedPostList.any((element) {
+          if (element.id == e.id) {
+            e.isSaved = true;
+            return true;
+          }
+          return false;
+        }));
+
     setState(() {
       _blogList = blogs;
       _filterBlogs();
     });
 
+    print(_blogList.length);
+
     for (var blog in blogs) {
-      await _getImage(blog['userId']);
+      await _getImage(blog.UserId ?? "");
     }
 
     setState(() {
@@ -65,7 +82,7 @@ class _BlogListState extends State<BlogList> {
         _filteredBlogList = _blogList;
       } else {
         _filteredBlogList = _blogList
-            .where((blog) => blog['category'] == _selectedCategory)
+            .where((blog) => blog.Category == _selectedCategory)
             .toList();
       }
     });
@@ -90,26 +107,26 @@ class _BlogListState extends State<BlogList> {
     };
 
     // Find the blog in the local state
-    final blogIndex =
-        _filteredBlogList.indexWhere((blog) => blog['id'] == blogId);
+    final blogIndex = _filteredBlogList.indexWhere((blog) => blog.id == blogId);
     if (blogIndex == -1) return; // If the blog is not found, exit
 
     // Update local state optimistically
     List<dynamic> updatedLikes;
     if (isLiked) {
-      updatedLikes = _filteredBlogList[blogIndex]['likes']
+      updatedLikes = _filteredBlogList[blogIndex]
+              .like
               ?.where((like) => like['userId'] != userId)
               .toList() ??
           [];
     } else {
       updatedLikes = [
-        ...(_filteredBlogList[blogIndex]['likes'] ?? []),
+        ...(_filteredBlogList[blogIndex].like ?? []),
         userLikeInfo
       ];
     }
 
     setState(() {
-      _filteredBlogList[blogIndex]['likes'] = updatedLikes;
+      _filteredBlogList[blogIndex].like = updatedLikes;
     });
 
     try {
@@ -274,11 +291,6 @@ class _BlogListState extends State<BlogList> {
     return prefs.getString('userId') ?? '';
   }
 
-  Future<bool> _getIsPostSaved(String id) async {
-    final userId = await _getUserId();
-    return await _authMethods.isPostSaved(userId, id);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -337,7 +349,7 @@ class _BlogListState extends State<BlogList> {
                             itemBuilder: (context, index) {
                               final blog = _filteredBlogList[index];
 
-                              final Timestamp timestamp = blog['timestamp'];
+                              final Timestamp timestamp = blog.timestamp!;
                               final DateTime dateTime = timestamp.toDate();
                               final String formattedDate =
                                   DateFormat.yMMMd().add_jm().format(dateTime);
@@ -353,8 +365,8 @@ class _BlogListState extends State<BlogList> {
                                   final String userId =
                                       prefs.getString('userId') ?? 'Anonymous';
 
-                                  final String authorId = blog['userId'];
-                                  final List<dynamic> likes = blog['likes'] ??
+                                  final String authorId = blog.UserId!;
+                                  final List<dynamic> likes = blog.like ??
                                       []; // Default to an empty list if null
                                   final bool isLiked =
                                       isLikedByCurrentUser(likes, userId);
@@ -398,7 +410,7 @@ class _BlogListState extends State<BlogList> {
                                                               .start,
                                                       children: [
                                                         Text(
-                                                          blog['author'] ??
+                                                          blog.AutherName ??
                                                               'Unknown',
                                                           style:
                                                               const TextStyle(
@@ -431,7 +443,7 @@ class _BlogListState extends State<BlogList> {
                                             ),
                                             const SizedBox(height: 16.0),
                                             Text(
-                                              blog['title'] ?? 'Blog Title',
+                                              blog.title ?? 'Blog Title',
                                               style: const TextStyle(
                                                 fontSize:
                                                     20.0, // Larger title font size
@@ -465,7 +477,7 @@ class _BlogListState extends State<BlogList> {
                                                       BorderRadius.circular(10),
                                                 ),
                                                 child: Text(
-                                                  blog['content'] ??
+                                                  blog.content ??
                                                       'Blog Content',
                                                   style: const TextStyle(
                                                     color: Colors.black87,
@@ -498,8 +510,8 @@ class _BlogListState extends State<BlogList> {
                                                             : Colors.grey,
                                                       ),
                                                       onPressed: () {
-                                                        _toggleLike(blog['id'],
-                                                            isLiked);
+                                                        _toggleLike(
+                                                            blog.id!, isLiked);
                                                       },
                                                     ),
                                                     IconButton(
@@ -511,15 +523,15 @@ class _BlogListState extends State<BlogList> {
                                                       onPressed: () {
                                                         _authMethods
                                                             .countComments(
-                                                                blog['id']);
+                                                                blog.id!);
                                                         _showCommentBottomSheet(
-                                                            blog['id']);
+                                                            blog.id!);
                                                       },
                                                     ),
                                                     FutureBuilder<int>(
                                                       future: _authMethods
                                                           .countComments(
-                                                              blog['id']),
+                                                              blog.id!),
                                                       builder:
                                                           (context, snapshot) {
                                                         if (snapshot.hasError) {
@@ -543,63 +555,40 @@ class _BlogListState extends State<BlogList> {
                                                   ],
                                                 ),
                                                 IconButton(
-                                                  icon: FutureBuilder<bool>(
-                                                    future: _getIsPostSaved(
-                                                        blog['id']),
-                                                    builder:
-                                                        (context, snapshot) {
-                                                      if (snapshot
-                                                              .connectionState ==
-                                                          ConnectionState
-                                                              .done) {
-                                                        if (snapshot.hasError) {
-                                                          return const Icon(
-                                                              Icons.error);
-                                                        } else if (snapshot
-                                                                .hasData &&
-                                                            snapshot.data ==
-                                                                true) {
-                                                          return const Icon(
-                                                            Icons.bookmark,
-                                                            color:
-                                                                Colors.blueGrey,
-                                                          );
-                                                        } else {
-                                                          return const Icon(
-                                                            Icons
-                                                                .bookmark_border_outlined,
-                                                            color:
-                                                                Colors.blueGrey,
-                                                          );
-                                                        }
-                                                      } else {
-                                                        return const Icon(
+                                                  icon: blog.isSaved
+                                                      ? const Icon(
+                                                          Icons.bookmark,
+                                                          color:
+                                                              Colors.blueGrey,
+                                                        )
+                                                      : const Icon(
                                                           Icons
                                                               .bookmark_border_outlined,
                                                           color:
                                                               Colors.blueGrey,
-                                                        );
-                                                      }
-                                                    },
-                                                  ),
+                                                        ),
                                                   onPressed: () async {
+                                                    setState(() {
+                                                      blog.isSaved =
+                                                          !blog.isSaved;
+                                                    });
+
                                                     final userId =
                                                         await _getUserId();
-                                                    if (isPostSaved) {
+
+                                                    if (blog.isSaved) {
+                                                      // Save post to Firestore if marked as saved
                                                       await _authMethods
                                                           .savePost(
                                                               userId, blog);
                                                     } else {
+                                                      // Remove post from Firestore if unmarked
                                                       await _authMethods
-                                                          .savePost(
-                                                              userId, blog);
+                                                          .removeSave(userId,
+                                                              blog.id ?? "");
                                                     }
-                                                    setState(() {
-                                                      isPostSaved =
-                                                          !isPostSaved;
-                                                    });
                                                   },
-                                                ),
+                                                )
                                               ],
                                             ),
                                             const SizedBox(height: 8.0),

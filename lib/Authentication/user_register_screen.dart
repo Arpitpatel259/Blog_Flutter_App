@@ -1,5 +1,5 @@
-import 'package:blog/Authentication/UserLoginScreen.dart';
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Authentication/user_login_screen.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:blog/Utilities/validation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

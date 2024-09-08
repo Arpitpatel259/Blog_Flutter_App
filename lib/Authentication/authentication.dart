@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:blog/Screens/splashScreen.dart';
+import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:blog/Services/Database.dart';
+import 'package:blog/Authentication/database.dart';
 import 'package:blog/firebase_options.dart';
 import 'package:blog/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,6 +16,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import '../Model/savedlist_model.dart';
 import '../Screens/under_maintainance.dart';
 
 class AuthMethods {
@@ -62,7 +64,8 @@ class AuthMethods {
           .doc('appStatus')
           .get();
 
-      bool isAppUnderMaintenance = maintenanceSnapshot['isAppUnderMaintenance'] ?? false;
+      bool isAppUnderMaintenance =
+          maintenanceSnapshot['isAppUnderMaintenance'] ?? false;
 
       if (isAppUnderMaintenance) {
         return const UnderMaintainance(); // Define this screen to show maintenance message
@@ -78,7 +81,6 @@ class AuthMethods {
           return const SplashScreen();
         }
       }
-
     } catch (e) {
       if (kDebugMode) {
         print('Error checking login status: $e');
@@ -94,7 +96,6 @@ class AuthMethods {
       );
     }
   }
-
 
   // Google Login
   Future<void> signInWithGoogle(BuildContext context) async {
@@ -500,7 +501,6 @@ class AuthMethods {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
       await firestore.collection('Blog').doc(blogId).delete();
-
     } catch (e) {}
   }
 
@@ -563,7 +563,7 @@ class AuthMethods {
     }
   }
 
-//To show Profile images
+  //To show Profile images
   Widget buildProfileImage(String? base64Image) {
     if (base64Image == null || base64Image.isEmpty) {
       // Handle the case where no image is provided
@@ -576,12 +576,34 @@ class AuthMethods {
 
     // Heuristic to check if the input is a URL or Base64 string
     if (base64Image.startsWith('http') || base64Image.startsWith('https')) {
-      // If it starts with http or https, treat it as a network URL
-      return Image.network(
-        base64Image,
-        fit: BoxFit.cover,
-        width: 50,
-        height: 50,
+      // Use Image.network with a loading builder and error handling
+      return ClipOval(
+        child: Image.network(
+          base64Image,
+          fit: BoxFit.cover,
+          width: 50,
+          height: 50,
+          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+            if (loadingProgress == null) {
+              return child;
+            } else {
+              return const SizedBox(
+                width: 50,
+                height: 50,
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.error,
+              size: 50,
+              color: Colors.red,
+            );
+          },
+        ),
       );
     } else {
       try {
@@ -607,29 +629,35 @@ class AuthMethods {
     }
   }
 
-//Get all blogs from DB
-  Future<List<Map<String, dynamic>>> getAllBlogs() async {
-    try {
-      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('Blog')
-          .orderBy('timestamp', descending: true)
-          .get();
 
-      final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
-        return doc.data() as Map<String, dynamic>;
-      }).toList();
+  //Get all blogs from DB
+  Future<List<BlogModel>> getAllBlogs() async {
+    // try {
+    final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('Blog')
+        .orderBy('timestamp', descending: true)
+        .get();
 
-      return blogList;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching blog data: $e');
-      }
-      return [];
-    }
+    final List<BlogModel> blogList = querySnapshot.docs.map((doc) {
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      return BlogModel(
+          data['author'],
+          data['category'],
+          data['content'],
+          data['id'],
+          data['imageBase64'],
+          data['timestamp'],
+          data['title'],
+          data['userId'],
+          data['likes'] as List<dynamic>,
+          false);
+    }).toList();
+
+    return blogList;
   }
 
 //Get that blogs which is post by current user
-  Future<List<Map<String, dynamic>>> getCurrentUserBlogs() async {
+  Future<List<BlogModel>> getCurrentUserBlogs() async {
     try {
       // Get the current user's ID
       final user = FirebaseAuth.instance.currentUser;
@@ -644,9 +672,19 @@ class AuthMethods {
           .where('userId', isEqualTo: userId)
           .get();
 
-      // Map the documents to a list of blog data
-      final List<Map<String, dynamic>> blogList = querySnapshot.docs.map((doc) {
-        return doc.data() as Map<String, dynamic>;
+      final List<BlogModel> blogList = querySnapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return BlogModel(
+            data['author'],
+            data['category'],
+            data['content'],
+            data['id'],
+            data['imageBase64'],
+            data['timestamp'],
+            data['title'],
+            data['userId'],
+            data['likes'] as List<dynamic>,
+            false);
       }).toList();
 
       return blogList;
@@ -703,21 +741,41 @@ class AuthMethods {
     }
   }
 
-  Future<void> savePost(String userId, Map<String, dynamic> blog) async {
+  Future<void> savePost(String userId, BlogModel blog) async {
+    try {
+      // Reference to the saved post in Firestore
+      final savedPostsRef = _firestore
+          .collection('User')
+          .doc(userId)
+          .collection('SavedPosts')
+          .doc(blog.id);
+
+      // Create the data map with fields to be stored
+      Map<String, dynamic> data = {
+        "id": blog.id,
+        "userId": blog.UserId,
+        "author": blog.AutherName,
+        "title": blog.title,
+      };
+
+      // Write the data to Firestore
+      await savedPostsRef.set(data);
+
+    } catch (e) {
+      // Log the error message
+    }
+  }
+
+  Future<void> removeSave(String userId, String id) async {
     try {
       final savedPostsRef = _firestore
           .collection('User')
           .doc(userId)
           .collection('SavedPosts') // Ensure this matches across all methods
-          .doc(blog['id']);
+          .doc(id);
 
-      final savedPostSnapshot = await savedPostsRef.get();
 
-      if (savedPostSnapshot.exists) {
-        await savedPostsRef.delete();
-      } else {
-        await savedPostsRef.set(blog);
-      }
+      await savedPostsRef.delete();
     } catch (e) {}
   }
 
@@ -736,8 +794,7 @@ class AuthMethods {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getSavedPosts(
-      String userId, BuildContext context) async {
+  Future<List<SavedBlogModel>> getSavedPosts(String userId) async {
     try {
       final savedPostsRef = _firestore
           .collection('User')
@@ -746,11 +803,18 @@ class AuthMethods {
 
       final querySnapshot = await savedPostsRef.get();
 
-      return querySnapshot.docs.map((doc) => doc.data()).toList();
+      final List<SavedBlogModel> blogList = querySnapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data();
+        return SavedBlogModel(
+          data['id'],
+          data['userId'],
+          data['title'],
+          data['author'],
+        );
+      }).toList();
+
+      return blogList.toList();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to retrieve saved posts: $e')),
-      );
       return [];
     }
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../Model/savedlist_model.dart';
+
 final kBoxDecorationStyle = BoxDecoration(
   color: const Color(0xFF6CA8F1),
   borderRadius: BorderRadius.circular(10.0),
@@ -31,3 +33,6 @@ const kSecondaryColor = Color(0xFF979797);
 const kTextColor = Color(0xFF757575);
 
 const double defaultPadding = 16.0;
+
+
+List<SavedBlogModel> savedPostList = [];

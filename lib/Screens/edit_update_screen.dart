@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,7 @@ import '../main.dart';
 
 class PostEditor extends StatefulWidget {
   final bool isEdit;
-  final Map<String, dynamic>? blog;
+  final BlogModel? blog;
 
   const PostEditor({Key? key, required this.isEdit, this.blog})
       : super(key: key);
@@ -32,9 +33,9 @@ class _PostEditorState extends State<PostEditor> {
   @override
   void initState() {
     if (widget.isEdit) {
-      _titleController = TextEditingController(text: widget.blog?['title']);
-      _contentController = TextEditingController(text: widget.blog?['content']);
-      _selectedCategory = widget.blog?['category'];
+      _titleController = TextEditingController(text: widget.blog!.title);
+      _contentController = TextEditingController(text: widget.blog!.content);
+      _selectedCategory = widget.blog!.Category;
     }
     super.initState();
   }
@@ -60,17 +61,17 @@ class _PostEditorState extends State<PostEditor> {
     } else if (mediaFile != null) {
       return kIsWeb
           ? Image.network(
-        mediaFile.path,
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-      )
+              mediaFile.path,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            )
           : Image.file(
-        File(mediaFile.path),
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-      );
+              File(mediaFile.path),
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            );
     } else {
       return Image.asset(
         'assets/logos/blog_sample.png',
@@ -110,7 +111,7 @@ class _PostEditorState extends State<PostEditor> {
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainPage()),
-            (route) => false,
+        (route) => false,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -133,19 +134,19 @@ class _PostEditorState extends State<PostEditor> {
     );
 
     await AuthMethods().updateBlog(
-      widget.blog?['id'],
+      widget.blog!.id!,
       name!,
       _titleController.text,
       _contentController.text,
       _mediaFile,
-      widget.blog?['imageBase64'],
+      widget.blog!.imageBase64!,
       context,
       category: _selectedCategory,
     );
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const MainPage()),
-          (Route<dynamic> route) => false,
+      (Route<dynamic> route) => false,
     );
   }
 
@@ -198,7 +199,7 @@ class _PostEditorState extends State<PostEditor> {
               SizedBox(
                 width: double.infinity,
                 height: 200.0,
-                child: _displayImage(widget.blog?['imageBase64'], _mediaFile),
+                child: _displayImage(widget.blog!.imageBase64, _mediaFile),
               ),
               const SizedBox(height: 16.0),
               TextField(
@@ -250,8 +251,8 @@ class _PostEditorState extends State<PostEditor> {
                   decoration: _isUnderline
                       ? TextDecoration.underline
                       : _isStrikethrough
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
                 ),
                 decoration: InputDecoration(
                   labelText: 'Content',

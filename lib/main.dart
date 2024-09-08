@@ -8,11 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'Screens/EditPostBlogs.dart';
-import 'Screens/SavedPostScreen.dart';
-import 'Screens/showMyBlogs.dart';
-import 'Services/Auth.dart';
-import 'Utilities/cardwidgets.dart';
+import 'Screens/edit_update_screen.dart';
+import 'Screens/saved_post_screen.dart';
+import 'Screens/show_my_blogs.dart';
+import 'Authentication/authentication.dart';
+import 'Utilities/card_widgets.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {

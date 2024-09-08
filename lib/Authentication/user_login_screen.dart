@@ -1,8 +1,8 @@
 // ignore_for_file: file_names, non_constant_identifier_names, use_build_context_synchronously, prefer_typing_uninitialized_variables, avoid_print, unnecessary_null_comparison
 
-import 'package:blog/Authentication/UserRegisterScreen.dart';
-import 'package:blog/Screens/splashScreen.dart';
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Authentication/user_register_screen.dart';
+import 'package:blog/Screens/splash_screen.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:blog/Utilities/constant.dart';
 import 'package:blog/Utilities/validation.dart';
 import 'package:flutter/material.dart';

@@ -1,7 +1,9 @@
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Model/savedlist_model.dart';
+import 'package:blog/Screens/blog_details_screen.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'BlogDetailScreen.dart';
 
 class SavedPostsScreen extends StatefulWidget {
   final String userId;
@@ -13,7 +15,8 @@ class SavedPostsScreen extends StatefulWidget {
 }
 
 class _SavedPostsScreenState extends State<SavedPostsScreen> {
-  List<Map<String, dynamic>> _savedPosts = [];
+  List<SavedBlogModel> _savedPosts = [];
+  List<BlogModel> blogModel = [];
   final Map<String, String> _profileImages = {};
   AuthMethods authMethods = AuthMethods();
   bool _isLoading = true;
@@ -25,26 +28,44 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
   }
 
   Future<void> _loadSavedPosts() async {
-    final savedPosts = await authMethods.getSavedPosts(widget.userId, context);
+    try {
+      final savedPosts = await authMethods.getSavedPosts(widget.userId);
 
-    setState(() {
-      _savedPosts = savedPosts;
-      _isLoading = false;
-    });
+      // Fetch all profile images
+      await _fetchProfileImages(savedPosts);
+
+      setState(() {
+        _savedPosts = savedPosts;
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Handle errors
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error loading saved posts: $e');
+    }
   }
 
-  Future<void> _getImage(String userId) async {
-    if (_profileImages.containsKey(userId)) {
-      return; // Image already fetched
-    }
+  Future<void> _fetchProfileImages(List<SavedBlogModel> posts) async {
+    final userIds =
+        posts.map((post) => post.userId).whereType<String>().toSet();
+    for (String userId in userIds) {
+      if (_profileImages.containsKey(userId)) {
+        continue; // Skip already fetched images
+      }
 
-    DocumentSnapshot userSnapshot =
-        await FirebaseFirestore.instance.collection('User').doc(userId).get();
-
-    if (userSnapshot.exists) {
-      setState(() {
-        _profileImages[userId] = userSnapshot['imgUrl'];
-      });
+      try {
+        DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('User')
+            .doc(userId)
+            .get();
+        if (userSnapshot.exists) {
+          _profileImages[userId] = userSnapshot['imgUrl'] ?? '';
+        }
+      } catch (e) {
+        print('Error fetching profile image for $userId: $e');
+      }
     }
   }
 
@@ -67,9 +88,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                   itemCount: _savedPosts.length,
                   itemBuilder: (context, index) {
                     final post = _savedPosts[index];
-                    _getImage(post['userId']);
-
-                    final String authorId = post['userId'];
+                    final String authorId = post.userId ?? '';
                     final String? pImage = _profileImages[authorId];
 
                     return Card(
@@ -80,7 +99,6 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        // Add padding around the entire post card
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -90,15 +108,17 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                                   width: 50,
                                   height: 50,
                                   child: ClipOval(
-                                    child:
-                                        authMethods.buildProfileImage(pImage),
+                                    child: pImage != null && pImage.isNotEmpty
+                                        ? Image.network(pImage,
+                                            fit: BoxFit.cover)
+                                        : const Icon(Icons.person,
+                                            size: 50, color: Colors.grey),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                // Add spacing between the image and text
                                 Expanded(
                                   child: Text(
-                                    post['author'] ?? 'No Author',
+                                    post.titleText ?? 'No Title',
                                     style: const TextStyle(
                                       color: Colors.black87,
                                       fontWeight: FontWeight.bold,
@@ -109,25 +129,15 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            // Add spacing between the author and title
                             ListTile(
                               contentPadding: EdgeInsets.zero,
-                              // Remove default padding from ListTile
                               title: Text(
-                                post['title'] ?? 'No Title',
+                                post.authorName ?? 'No Author',
                                 style: const TextStyle(
                                   color: Colors.black87,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
                                 ),
-                              ),
-                              subtitle: Text(
-                                post['content'] ?? 'No Content',
-                                maxLines: 3,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                ),
-                                overflow: TextOverflow.ellipsis,
                               ),
                               trailing: IconButton(
                                 icon: const Icon(
@@ -135,15 +145,17 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                                   color: Colors.blueGrey,
                                 ),
                                 onPressed: () async {
-                                  // Add or remove the post from saved posts
-                                  await authMethods.savePost(
-                                      widget.userId, post);
-                                  // Refresh the saved posts list
-                                  await _loadSavedPosts();
+                                  try {
+                                    await authMethods.removeSave(
+                                        widget.userId, post.id ?? "");
+                                    await _loadSavedPosts();
+                                  } catch (e) {
+                                    print('Error updating saved posts: $e');
+                                  }
                                 },
                               ),
                               onTap: () {
-                                Navigator.push(
+                                /*Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => BlogDetailScreen(
@@ -151,7 +163,7 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
                                       image: pImage,
                                     ),
                                   ),
-                                );
+                                );*/
                               },
                             ),
                           ],

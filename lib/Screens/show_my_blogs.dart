@@ -3,14 +3,15 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:blog/Screens/EditPostBlogs.dart';
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Screens/edit_update_screen.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'BlogDetailScreen.dart';
+import 'blog_details_screen.dart';
 
 class showMyBlogPost extends StatefulWidget {
   const showMyBlogPost({super.key});
@@ -20,7 +21,8 @@ class showMyBlogPost extends StatefulWidget {
 }
 
 class _showMyBlogPostState extends State<showMyBlogPost> {
-  Future<List<Map<String, dynamic>>>? _futureBlogs;
+  Future<List<BlogModel>>? _futureBlogs; // Changed to Future
+
   final AuthMethods _authMethods = AuthMethods();
   late SharedPreferences pref;
 
@@ -40,7 +42,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   Future<void> _refreshBlogs() async {
     pref = await SharedPreferences.getInstance();
     setState(() {
-      _futureBlogs = _authMethods.getCurrentUserBlogs();
+      _futureBlogs = _authMethods.getCurrentUserBlogs(); // Assign future here
     });
 
     userId = pref.getString("userId") ?? "";
@@ -316,7 +318,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                   ),
                 ),
               ),
-              FutureBuilder<List<Map<String, dynamic>>>(
+              FutureBuilder<List<BlogModel>>(
                 future: _futureBlogs,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -335,21 +337,23 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                       itemCount: blogList.length,
                       itemBuilder: (context, index) {
                         final blog = blogList[index];
-                        final Timestamp timestamp = blog['timestamp'];
+                        final Timestamp timestamp = blog.timestamp!;
                         final DateTime dateTime = timestamp.toDate();
                         final String formattedDate =
                             DateFormat.yMMMd().add_jm().format(dateTime);
 
-                        final List<dynamic> likers = blog['likes'] ?? [];
+                        final List<dynamic> likers = blog.like ?? [];
                         final int likeCount = likers.length;
 
                         final authorImage = pref.getString('imgUrl');
 
                         return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 10.0, horizontal: 16.0),
                           elevation: 5,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15), // Rounded corners
+                            borderRadius:
+                                BorderRadius.circular(15), // Rounded corners
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -359,18 +363,22 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                 Row(
                                   children: [
                                     ClipOval(
-                                      child: _authMethods.buildProfileImage(authorImage),
+                                      child: _authMethods
+                                          .buildProfileImage(authorImage),
                                     ),
-                                    const SizedBox(width: 12), // Increased spacing for better alignment
+                                    const SizedBox(width: 12),
+                                    // Increased spacing for better alignment
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            blog['author'] ?? 'Unknown Author',
+                                            blog.AutherName ?? 'Unknown Author',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 16, // Slightly larger font for emphasis
+                                              fontSize: 16,
+                                              // Slightly larger font for emphasis
                                               color: Colors.black87,
                                             ),
                                           ),
@@ -386,7 +394,8 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => PostEditor(
+                                                builder: (context) =>
+                                                    PostEditor(
                                                   isEdit: true,
                                                   blog: blog,
                                                 ),
@@ -398,12 +407,16 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                           icon: const Icon(Icons.delete),
                                           color: Colors.redAccent,
                                           onPressed: () {
-                                            _authMethods.deleteBlogByUser(context, blog['id']);
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            _authMethods.deleteBlogByUser(
+                                                context, blog.id!);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
                                               SnackBar(
-                                                content: const Text('Blog Deleted Successfully.'),
+                                                content: const Text(
+                                                    'Blog Deleted Successfully.'),
                                                 backgroundColor: Colors.teal,
-                                                behavior: SnackBarBehavior.floating,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
                                                 action: SnackBarAction(
                                                   label: 'Dismiss',
                                                   textColor: Colors.yellow,
@@ -420,9 +433,10 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  blog['title'] ?? 'Blog Title',
+                                  blog.title ?? 'Blog Title',
                                   style: const TextStyle(
-                                    fontSize: 20, // Larger title font for emphasis
+                                    fontSize: 20,
+                                    // Larger title font for emphasis
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
@@ -441,33 +455,41 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                     );
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 14.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10.0, horizontal: 14.0),
                                     decoration: BoxDecoration(
                                       color: Colors.grey[300],
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
-                                      blog['content'] ?? 'Blog Content',
+                                      blog.content ?? 'Blog Content',
                                       style: const TextStyle(
                                         color: Colors.black87,
                                         fontSize: 15,
-                                        fontWeight: FontWeight.w400, // Normal weight for content
+                                        fontWeight: FontWeight
+                                            .w400, // Normal weight for content
                                       ),
                                       maxLines: 4,
-                                      overflow: TextOverflow.ellipsis, // Ellipsis for long content
+                                      overflow: TextOverflow
+                                          .ellipsis, // Ellipsis for long content
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
                                         IconButton(
                                           icon: Icon(
-                                            likeCount > 0 ? Icons.favorite : Icons.favorite_border,
-                                            color: likeCount > 0 ? Colors.red : Colors.grey,
+                                            likeCount > 0
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color: likeCount > 0
+                                                ? Colors.red
+                                                : Colors.grey,
                                           ),
                                           onPressed: () {},
                                         ),
@@ -481,7 +503,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         ),
                                       ],
                                     ),
-                                    buildBlogRow(blog['id']),
+                                    buildBlogRow(blog.id!),
                                     IconButton(
                                       icon: const Icon(
                                         Icons.share_outlined,
@@ -489,10 +511,10 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                       ),
                                       onPressed: () {
                                         _authMethods.shareMessage(
-                                          blog['title'],
-                                          blog['content'],
-                                          blog['author'],
-                                          blog['timestamp'],
+                                          blog.title!,
+                                          blog.content!,
+                                          blog.AutherName!,
+                                          blog.timestamp!,
                                         );
                                       },
                                     ),
@@ -504,14 +526,16 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                     formattedDate,
                                     style: const TextStyle(
                                       fontSize: 12, // Smaller font for date
-                                      color: Colors.grey, // Grey color for subtle appearance
+                                      color: Colors
+                                          .grey, // Grey color for subtle appearance
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        );                      },
+                        );
+                      },
                     );
                   }
                 },

@@ -1,10 +1,12 @@
-import 'package:blog/Authentication/UserLoginScreen.dart';
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Authentication/user_login_screen.dart';
+import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'BlogDetailScreen.dart';
+import '../Model/savedlist_model.dart';
+import 'blog_details_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -15,7 +17,10 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   final AuthMethods _authMethods = AuthMethods();
-  List<Map<String, dynamic>> _blogList = [];
+  List<BlogModel> _blogList = [];
+
+
+
   final Map<String, String> _profileImages = {};
   bool isLoading = true;
   AuthMethods authMethods = AuthMethods();
@@ -121,17 +126,17 @@ class _SplashScreenState extends State<SplashScreen> {
                     itemCount: _blogList.length,
                     itemBuilder: (context, index) {
                       final blog = _blogList[index];
-                      _getImage(blog['userId']);
-                      final List<dynamic> likers = blog['likes'] ?? [];
+                      _getImage(blog.UserId!);
+                      final List<dynamic> likers = blog.like ?? [];
                       final int likeCount = likers.length;
 
-                      final Timestamp timestamp = blog['timestamp'];
+                      final Timestamp timestamp = blog.timestamp!;
                       final DateTime dateTime = timestamp.toDate();
                       final String formattedDate =
                           DateFormat.yMMMd().add_jm().format(dateTime);
 
                       // Get author image
-                      final String authorId = blog['userId'];
+                      final String authorId = blog.UserId!;
                       final String? pImage = _profileImages[authorId];
 
                       return GestureDetector(
@@ -161,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              blog['author'] ?? 'Unknown',
+                                              blog.AutherName ?? 'Unknown',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors
@@ -176,7 +181,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  blog['title'] ?? 'Blog Title',
+                                  blog.title ?? 'Blog Title',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -195,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                 const SizedBox(height: 5),
                                 GestureDetector(
                                   onTap: () {
-                                    _getImage(blog['userId']);
+                                    _getImage(blog.UserId!);
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -205,7 +210,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                     );
                                   },
                                   child: Text(
-                                    blog['content'] ?? 'Blog Content',
+                                    blog.content ?? 'Blog Content',
                                     style: const TextStyle(
                                       fontSize: 15,
                                       color: Colors.black87, // Dark text color

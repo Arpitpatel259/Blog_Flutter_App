@@ -1,5 +1,4 @@
-import 'package:blog/Services/Auth.dart';
-import 'package:blog/main.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 

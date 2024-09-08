@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:blog/Services/Auth.dart';
+import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Authentication/authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class BlogDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> blog; // Required parameter
-  final String? image; // Optional parameter
+  final BlogModel blog;
+  final String? image;
 
-  // Constructor without `const`
   const BlogDetailScreen({Key? key, required this.blog, this.image})
       : super(key: key);
 
@@ -53,13 +53,8 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
                       leading: CircleAvatar(
-                        backgroundColor: Colors.blueGrey,
-                        backgroundImage: authorImage != null && authorImage.isNotEmpty
-                            ? NetworkImage(authorImage)
-                            : null,
-                        child: authorImage == null || authorImage.isEmpty
-                            ? const Icon(Icons.person, color: Colors.white)
-                            : null,
+                        radius: 25,
+                        child: AuthMethods().buildProfileImage(authorImage),
                       ),
                       title: Text(user['username'] ?? 'Unknown'),
                     );
@@ -80,11 +75,12 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
 
     try {
       DocumentSnapshot userSnapshot =
-      await FirebaseFirestore.instance.collection('User').doc(userId).get();
+          await FirebaseFirestore.instance.collection('User').doc(userId).get();
 
       if (userSnapshot.exists) {
         setState(() {
-          _profileImages[userId] = userSnapshot['imgUrl'] ?? ''; // Handle null value
+          _profileImages[userId] =
+              userSnapshot['imgUrl'] ?? ''; // Handle null value
         });
       }
     } catch (e) {
@@ -96,7 +92,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _getImage(widget.blog['userId']);
+    _getImage(widget.blog.UserId!);
   }
 
   @override
@@ -104,27 +100,21 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
     final blog = widget.blog;
     final String? image = widget.image;
     final String formattedDate =
-    DateFormat.yMMMd().add_jm().format(blog['timestamp'].toDate());
-    final int likeCount = (blog['likes'] ?? []).length;
+        DateFormat.yMMMd().add_jm().format(blog.timestamp!.toDate());
+    final int likeCount = (blog.like ?? []).length;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        title: CircleAvatar(
-          backgroundColor: Colors.blueGrey,
-          backgroundImage: image != null && image.isNotEmpty
-              ? NetworkImage(image)
-              : null,
-          child: image == null || image.isEmpty
-              ? const Icon(Icons.person, color: Colors.white)
-              : null,
+        title: ClipOval(
+          child: AuthMethods().buildProfileImage(image),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              authMethods.shareMessage(blog['title'], blog['content'],
-                  blog['author'], blog['timestamp']);
+              authMethods.shareMessage(blog.title!, blog.content!,
+                  blog.AutherName!, blog.timestamp!);
             },
           ),
         ],
@@ -135,75 +125,75 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              blog['title'] ?? '',
+              blog.title ?? '',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.headline5?.color,
+                color: Theme.of(context).textTheme.headlineSmall?.color,
               ),
             ),
             const SizedBox(height: 8.0),
             Text(
-              "Published by: ${blog['author'] ?? ''}",
+              "Published by: ${blog.AutherName ?? ''}",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.subtitle1?.color,
+                color: Theme.of(context).textTheme.titleMedium?.color,
               ),
             ),
             Text(
               formattedDate,
               style: TextStyle(
-                color: Theme.of(context).textTheme.subtitle2?.color,
+                color: Theme.of(context).textTheme.titleSmall?.color,
               ),
             ),
             const SizedBox(height: 16),
-            blog['imageBase64'] != null
+            blog.imageBase64 != null
                 ? Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow,
-                    blurRadius: 8.0,
-                    offset: const Offset(0, 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).colorScheme.shadow,
+                          blurRadius: 8.0,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: Image.memory(
+                        base64Decode(blog.imageBase64!),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 200.0,
+                      ),
+                    ),
                   )
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12.0),
-                child: Image.memory(
-                  base64Decode(blog['imageBase64']),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: 200.0,
-                ),
-              ),
-            )
                 : Container(
-              height: 200.0,
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow,
-                    blurRadius: 8.0,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.image_outlined,
-                  size: 48,
-                  color: Colors.black54,
-                ),
-              ),
-            ),
+                    height: 200.0,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).colorScheme.shadow,
+                          blurRadius: 8.0,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 48,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(8.0),
@@ -212,11 +202,11 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                 borderRadius: BorderRadius.circular(12.0),
               ),
               child: SelectableText(
-                blog['content'] ?? '',
+                blog.content ?? '',
                 style: TextStyle(
                   fontSize: 18.0,
                   height: 1.5,
-                  color: Theme.of(context).textTheme.bodyText1?.color,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
                 textAlign: TextAlign.justify,
               ),
@@ -233,13 +223,13 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                         icon: const Icon(Icons.thumb_up),
                         onPressed: () {
                           _showUsersList(context, "Likes",
-                              authMethods.getUsersWhoLiked(blog['id']));
+                              authMethods.getUsersWhoLiked(blog.id!));
                         },
                       ),
                       Text(
                         likeCount == 1 ? '$likeCount Like' : '$likeCount Likes',
                         style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyText2?.color,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
                       ),
                       const SizedBox(width: 30),
@@ -253,7 +243,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                               return Padding(
                                 padding: EdgeInsets.only(
                                   bottom:
-                                  MediaQuery.of(context).viewInsets.bottom,
+                                      MediaQuery.of(context).viewInsets.bottom,
                                 ),
                                 child: Container(
                                   padding: const EdgeInsets.all(16.0),
@@ -264,24 +254,24 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                                         child: StreamBuilder<QuerySnapshot>(
                                           stream: _firestore
                                               .collection('Blog')
-                                              .doc(blog['id'])
+                                              .doc(blog.id!)
                                               .collection('comments')
                                               .orderBy('timestamp',
-                                              descending: true)
+                                                  descending: true)
                                               .snapshots(),
                                           builder: (context, snapshot) {
                                             if (snapshot.connectionState ==
                                                 ConnectionState.waiting) {
                                               return const Center(
                                                   child:
-                                                  CircularProgressIndicator());
+                                                      CircularProgressIndicator());
                                             }
 
                                             if (!snapshot.hasData ||
                                                 snapshot.data!.docs.isEmpty) {
                                               return const Center(
                                                   child:
-                                                  Text('No comments yet.'));
+                                                      Text('No comments yet.'));
                                             }
 
                                             final comments =
@@ -290,53 +280,63 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                                             return ListView.builder(
                                               shrinkWrap: true,
                                               physics:
-                                              const NeverScrollableScrollPhysics(),
+                                                  const NeverScrollableScrollPhysics(),
                                               itemCount: comments.length,
                                               itemBuilder: (context, index) {
                                                 final commentData =
-                                                comments[index].data()
-                                                as Map<String, dynamic>;
+                                                    comments[index].data()
+                                                        as Map<String, dynamic>;
                                                 final userName =
                                                     commentData['userName'] ??
                                                         'Anonymous';
                                                 final commentText = commentData[
-                                                'commentText'] ??
+                                                        'commentText'] ??
                                                     '';
 
                                                 final timestamp =
-                                                commentData['timestamp'];
+                                                    commentData['timestamp'];
                                                 final DateTime? dateTime =
-                                                timestamp != null
-                                                    ? (timestamp
-                                                as Timestamp)
-                                                    .toDate()
-                                                    : null;
+                                                    timestamp != null
+                                                        ? (timestamp
+                                                                as Timestamp)
+                                                            .toDate()
+                                                        : null;
                                                 final String formattedDate =
-                                                dateTime != null
-                                                    ? DateFormat.yMMMd()
-                                                    .format(dateTime)
-                                                    : '';
+                                                    dateTime != null
+                                                        ? DateFormat.yMMMd()
+                                                            .format(dateTime)
+                                                        : '';
 
                                                 final String? authorId =
-                                                commentData['userId'];
+                                                    commentData['userId'];
                                                 _getImage(authorId!);
                                                 final String? authorImage =
-                                                _profileImages[authorId];
+                                                    _profileImages[authorId];
 
                                                 return ListTile(
                                                   leading: CircleAvatar(
-                                                    backgroundColor: Colors.blueGrey,
-                                                    backgroundImage: authorImage != null && authorImage.isNotEmpty
-                                                        ? NetworkImage(authorImage)
-                                                        : null,
-                                                    child: authorImage == null || authorImage.isEmpty
-                                                        ? const Icon(Icons.person, color: Colors.white)
+                                                    backgroundColor:
+                                                        Colors.blueGrey,
+                                                    backgroundImage:
+                                                        authorImage != null &&
+                                                                authorImage
+                                                                    .isNotEmpty
+                                                            ? NetworkImage(
+                                                                authorImage)
+                                                            : null,
+                                                    child: authorImage ==
+                                                                null ||
+                                                            authorImage.isEmpty
+                                                        ? const Icon(
+                                                            Icons.person,
+                                                            color: Colors.white)
                                                         : null,
                                                   ),
                                                   title: Text(
                                                     userName,
                                                     style: const TextStyle(
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 16,
                                                     ),
                                                   ),
@@ -368,7 +368,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                         },
                       ),
                       FutureBuilder<int>(
-                        future: authMethods.countComments(blog['id']),
+                        future: authMethods.countComments(blog.id!),
                         builder: (BuildContext context,
                             AsyncSnapshot<int> snapshot) {
                           if (snapshot.hasError) {
@@ -379,7 +379,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                             "${snapshot.data} comments",
                             style: TextStyle(
                               color:
-                              Theme.of(context).textTheme.bodyText2?.color,
+                                  Theme.of(context).textTheme.bodyMedium?.color,
                               fontSize: 14.0,
                               fontWeight: FontWeight.bold,
                             ),
