@@ -374,7 +374,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            blog.AutherName ?? 'Unknown Author',
+                                            blog.authorName ?? 'Unknown Author',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
@@ -513,7 +513,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
                                         _authMethods.shareMessage(
                                           blog.title!,
                                           blog.content!,
-                                          blog.AutherName!,
+                                          blog.authorName!,
                                           blog.timestamp!,
                                         );
                                       },

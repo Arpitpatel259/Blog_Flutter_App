@@ -1,20 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:blog/Authentication/database.dart';
 import 'package:blog/Model/bloglist_model.dart';
 import 'package:blog/Screens/splash_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:blog/Authentication/database.dart';
 import 'package:blog/firebase_options.dart';
 import 'package:blog/main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'
     show Uint8List, defaultTargetPlatform, kDebugMode, kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 import '../Model/savedlist_model.dart';
 import '../Screens/under_maintainance.dart';
@@ -583,7 +584,8 @@ class AuthMethods {
           fit: BoxFit.cover,
           width: 50,
           height: 50,
-          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+          loadingBuilder: (BuildContext context, Widget child,
+              ImageChunkEvent? loadingProgress) {
             if (loadingProgress == null) {
               return child;
             } else {
@@ -628,7 +630,6 @@ class AuthMethods {
       }
     }
   }
-
 
   //Get all blogs from DB
   Future<List<BlogModel>> getAllBlogs() async {
@@ -753,14 +754,13 @@ class AuthMethods {
       // Create the data map with fields to be stored
       Map<String, dynamic> data = {
         "id": blog.id,
-        "userId": blog.UserId,
-        "author": blog.AutherName,
+        "userId": blog.userId,
+        "author": blog.authorName,
         "title": blog.title,
       };
 
       // Write the data to Firestore
       await savedPostsRef.set(data);
-
     } catch (e) {
       // Log the error message
     }
@@ -773,7 +773,6 @@ class AuthMethods {
           .doc(userId)
           .collection('SavedPosts') // Ensure this matches across all methods
           .doc(id);
-
 
       await savedPostsRef.delete();
     } catch (e) {}

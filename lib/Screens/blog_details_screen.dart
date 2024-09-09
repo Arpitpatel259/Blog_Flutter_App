@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:blog/Model/bloglist_model.dart';
+
 import 'package:blog/Authentication/authentication.dart';
+import 'package:blog/Model/bloglist_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -92,7 +93,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _getImage(widget.blog.UserId!);
+    _getImage(widget.blog.userId!);
   }
 
   @override
@@ -114,7 +115,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
             icon: const Icon(Icons.share),
             onPressed: () {
               authMethods.shareMessage(blog.title!, blog.content!,
-                  blog.AutherName!, blog.timestamp!);
+                  blog.authorName!, blog.timestamp!);
             },
           ),
         ],
@@ -134,7 +135,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
             ),
             const SizedBox(height: 8.0),
             Text(
-              "Published by: ${blog.AutherName ?? ''}",
+              "Published by: ${blog.authorName ?? ''}",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

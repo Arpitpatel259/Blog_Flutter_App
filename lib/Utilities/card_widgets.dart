@@ -65,10 +65,9 @@ class _BlogListState extends State<BlogList> {
       _filterBlogs();
     });
 
-    print(_blogList.length);
 
     for (var blog in blogs) {
-      await _getImage(blog.UserId ?? "");
+      await _getImage(blog.userId ?? "");
     }
 
     setState(() {
@@ -82,7 +81,7 @@ class _BlogListState extends State<BlogList> {
         _filteredBlogList = _blogList;
       } else {
         _filteredBlogList = _blogList
-            .where((blog) => blog.Category == _selectedCategory)
+            .where((blog) => blog.category == _selectedCategory)
             .toList();
       }
     });
@@ -115,12 +114,11 @@ class _BlogListState extends State<BlogList> {
     if (isLiked) {
       updatedLikes = _filteredBlogList[blogIndex]
               .like
-              ?.where((like) => like['userId'] != userId)
-              .toList() ??
-          [];
+              .where((like) => like['userId'] != userId)
+              .toList();
     } else {
       updatedLikes = [
-        ...(_filteredBlogList[blogIndex].like ?? []),
+        ...(_filteredBlogList[blogIndex].like),
         userLikeInfo
       ];
     }
@@ -142,7 +140,6 @@ class _BlogListState extends State<BlogList> {
       await _firestore.collection('Blog').doc(blogId).update(updateData);
     } catch (e) {
       // Handle errors gracefully, maybe log or show a message
-      print('Error updating Firestore: $e');
       // Optionally, revert the optimistic update if necessary
     }
   }
@@ -365,9 +362,8 @@ class _BlogListState extends State<BlogList> {
                                   final String userId =
                                       prefs.getString('userId') ?? 'Anonymous';
 
-                                  final String authorId = blog.UserId!;
-                                  final List<dynamic> likes = blog.like ??
-                                      []; // Default to an empty list if null
+                                  final String authorId = blog.userId!;
+                                  final List<dynamic> likes = blog.like; // Default to an empty list if null
                                   final bool isLiked =
                                       isLikedByCurrentUser(likes, userId);
                                   final int likeCount = likes.length;
@@ -410,7 +406,7 @@ class _BlogListState extends State<BlogList> {
                                                               .start,
                                                       children: [
                                                         Text(
-                                                          blog.AutherName ??
+                                                          blog.authorName ??
                                                               'Unknown',
                                                           style:
                                                               const TextStyle(

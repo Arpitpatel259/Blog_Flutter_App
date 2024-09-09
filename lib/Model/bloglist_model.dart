@@ -1,27 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BlogModel {
-  String? AutherName;
-  String? Category;
+  String? authorName;
+  String? category;
   String? content;
   String? id;
   String? imageBase64;
   Timestamp? timestamp;
   String? title;
-  String? UserId;
+  String? userId;
   List<dynamic> like = [];
   bool isSaved = false;
 
-
   BlogModel(
-    this.AutherName,
-    this.Category,
+    this.authorName,
+    this.category,
     this.content,
     this.id,
     this.imageBase64,
     this.timestamp,
     this.title,
-    this.UserId,
+    this.userId,
     this.like,
     this.isSaved,
   );

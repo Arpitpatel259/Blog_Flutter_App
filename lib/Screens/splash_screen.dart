@@ -126,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     itemCount: _blogList.length,
                     itemBuilder: (context, index) {
                       final blog = _blogList[index];
-                      _getImage(blog.UserId!);
+                      _getImage(blog.userId!);
                       final List<dynamic> likers = blog.like ?? [];
                       final int likeCount = likers.length;
 
@@ -136,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen> {
                           DateFormat.yMMMd().add_jm().format(dateTime);
 
                       // Get author image
-                      final String authorId = blog.UserId!;
+                      final String authorId = blog.userId!;
                       final String? pImage = _profileImages[authorId];
 
                       return GestureDetector(
@@ -166,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              blog.AutherName ?? 'Unknown',
+                                              blog.authorName ?? 'Unknown',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors
@@ -200,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                 const SizedBox(height: 5),
                                 GestureDetector(
                                   onTap: () {
-                                    _getImage(blog.UserId!);
+                                    _getImage(blog.userId!);
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(

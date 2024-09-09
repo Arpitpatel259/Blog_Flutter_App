@@ -35,7 +35,7 @@ class _PostEditorState extends State<PostEditor> {
     if (widget.isEdit) {
       _titleController = TextEditingController(text: widget.blog!.title);
       _contentController = TextEditingController(text: widget.blog!.content);
-      _selectedCategory = widget.blog!.Category;
+      _selectedCategory = widget.blog!.category;
     }
     super.initState();
   }
