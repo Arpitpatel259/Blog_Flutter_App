@@ -1,4 +1,5 @@
 import 'package:blog/Authentication/authentication.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -13,72 +14,53 @@ class _UnderMaintainanceState extends State<UnderMaintainance> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffffffff),
-      body: Align(
-        alignment: Alignment.center,
+      backgroundColor: kSurfaceColor,
+      body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
             children: [
               Lottie.asset(
                 'assets/animations/AppUnderMaintainance.json',
-                // Replace with your local Lottie JSON file path
-                height: 300,
-                width: 300,
-                fit: BoxFit.cover,
+                height: 280,
+                width: 280,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.settings_suggest_rounded, size: 100, color: kAccentColor),
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(0, 16, 0, 0),
-                child: Text(
-                  "Under Maintanance :-(",
-                  textAlign: TextAlign.start,
-                  overflow: TextOverflow.clip,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontStyle: FontStyle.normal,
-                    fontSize: 20,
-                    color: Color(0xff000000),
-                  ),
-                ),
+              const SizedBox(height: 24),
+              Text(
+                "Under Maintenance",
+                textAlign: TextAlign.center,
+                style: kTitleStyle,
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(0, 16, 0, 0),
-                child: Text(
-                  "Please check back soon just putting little touch up on some pretty updates.",
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.clip,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    fontStyle: FontStyle.normal,
-                    fontSize: 14,
-                    color: Color(0xff727272),
-                  ),
-                ),
+              const SizedBox(height: 12),
+              Text(
+                "We're currently performing some scheduled updates to improve your experience. Please check back in a few minutes.",
+                textAlign: TextAlign.center,
+                style: kSubtitleStyle,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-                child: MaterialButton(
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
                   onPressed: () {
                     AuthMethods().checkIfAlreadyLogin();
                   },
-                  color: const Color(0xff3a57e8),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26.0),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: kSurfaceColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(kDefaultRadius),
+                    ),
                   ),
-                  padding: const EdgeInsets.all(16),
-                  textColor: const Color(0xffffffff),
-                  height: 45,
-                  minWidth: MediaQuery.of(context).size.width * 0.6,
                   child: const Text(
                     "Check Again",
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      fontStyle: FontStyle.normal,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

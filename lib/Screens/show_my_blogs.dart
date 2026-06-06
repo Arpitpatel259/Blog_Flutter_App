@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:blog/Model/bloglist_model.dart';
 import 'package:blog/Screens/edit_update_screen.dart';
 import 'package:blog/Authentication/authentication.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,15 +14,15 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'blog_details_screen.dart';
 
-class showMyBlogPost extends StatefulWidget {
-  const showMyBlogPost({super.key});
+class ShowMyBlogPost extends StatefulWidget {
+  const ShowMyBlogPost({super.key});
 
   @override
-  State<showMyBlogPost> createState() => _showMyBlogPostState();
+  State<ShowMyBlogPost> createState() => _ShowMyBlogPostState();
 }
 
-class _showMyBlogPostState extends State<showMyBlogPost> {
-  Future<List<BlogModel>>? _futureBlogs; // Changed to Future
+class _ShowMyBlogPostState extends State<ShowMyBlogPost> {
+  Future<List<BlogModel>>? _futureBlogs;
 
   final AuthMethods _authMethods = AuthMethods();
   late SharedPreferences pref;
@@ -30,8 +31,6 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   String? profileImageUrl;
   String? name;
   String? email;
-  File? _mediaFile;
-  int? commentCount;
 
   @override
   void initState() {
@@ -42,7 +41,7 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   Future<void> _refreshBlogs() async {
     pref = await SharedPreferences.getInstance();
     setState(() {
-      _futureBlogs = _authMethods.getCurrentUserBlogs(); // Assign future here
+      _futureBlogs = _authMethods.getCurrentUserBlogs();
     });
 
     userId = pref.getString("userId") ?? "";
@@ -58,43 +57,35 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
   }
 
   Future<void> _uploadProfileImage(File? image) async {
-    String userId = pref.getString("userId") ?? "";
-
-    if (userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User ID is not set.')),
-      );
-      return;
-    }
-
-    if (image == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No image file selected.')),
-      );
-      return;
-    }
+    if (userId == null || userId!.isEmpty) return;
+    if (image == null) return;
 
     try {
       String base64Image = await _convertImageToBase64(image);
-
       await FirebaseFirestore.instance.collection('User').doc(userId).update({
         'imgUrl': base64Image,
       });
+      await pref.setString('imgUrl', base64Image);
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('imgUrl', base64Image);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile image uploaded successfully')),
-      );
-
-      setState(() {
-        profileImageUrl = base64Image;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile image updated'), 
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: kSuccessColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        setState(() {
+          profileImageUrl = base64Image;
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload profile image')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update profile image')),
+        );
+      }
     }
   }
 
@@ -103,446 +94,365 @@ class _showMyBlogPostState extends State<showMyBlogPost> {
     return base64Encode(bytes);
   }
 
-  Widget buildBlogRow(String blogId) {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () => _showLogoutDialog(),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refreshBlogs,
+        color: kPrimaryColor,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileHeader(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                child: Row(
+                  children: [
+                    Text("My Stories", style: kTitleStyle),
+                    const SizedBox(width: 8),
+                    FutureBuilder<List<BlogModel>>(
+                      future: _futureBlogs,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: kPrimaryColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              snapshot.data!.length.toString(),
+                              style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          );
+                        }
+                        return const SizedBox();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              _buildBlogsList(),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: kSoftShadow,
+        border: Border.all(color: kInputBorder),
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () async {
+              File? imageFile = await _pickImage();
+              if (imageFile != null) {
+                await _uploadProfileImage(imageFile);
+              }
+            },
+            child: Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: kPrimaryColor.withValues(alpha: 0.2), width: 3),
+                  ),
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: kInputFill,
+                    child: ClipOval(child: _authMethods.buildProfileImage(profileImageUrl)),
+                  ),
+                ),
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: kPrimaryColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: kSurfaceColor, width: 2),
+                    ),
+                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(name ?? 'Anonymous', style: kTitleStyle.copyWith(fontSize: 22)),
+          const SizedBox(height: 4),
+          Text(email ?? 'No email set', style: kBodyStyle),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildQuickStat('Followers', '124'), // Dummy data for UI
+              _buildStatDivider(),
+              _buildQuickStat('Following', '89'),   // Dummy data for UI
+              _buildStatDivider(),
+              _buildQuickStat('Appreciations', '1.2k'), // Dummy data for UI
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(
+      height: 30,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      color: kInputBorder,
+    );
+  }
+
+  Widget _buildQuickStat(String label, String value) {
+    return Column(
+      children: [
+        Text(value, style: kLabelStyle.copyWith(fontSize: 18)),
+        Text(label, style: kBodyStyle.copyWith(fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildBlogsList() {
+    return FutureBuilder<List<BlogModel>>(
+      future: _futureBlogs,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(40.0),
+            child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 3),
+          ));
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error fetching blogs', style: kSubtitleStyle));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                const Icon(Icons.post_add_rounded, size: 64, color: kTextLight),
+                const SizedBox(height: 16),
+                Text('Your journey starts here!', style: kTitleStyle),
+                const SizedBox(height: 8),
+                Text('Create your first blog post and share it with the world.', style: kBodyStyle),
+              ],
+            ),
+          );
+        } else {
+          final blogList = snapshot.data!;
+          return ListView.builder(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: blogList.length,
+            itemBuilder: (context, index) => _buildBlogCard(blogList[index]),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildBlogCard(BlogModel blog) {
+    final String formattedDate = blog.timestamp != null 
+        ? DateFormat('MMM dd, yyyy').format(blog.timestamp!.toDate()) 
+        : '';
+    final int likeCount = blog.like.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: kInputBorder),
+        boxShadow: kSoftShadow,
+      ),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => BlogDetailScreen(blog: blog, image: profileImageUrl)),
+        ),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kInputFill,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      blog.category ?? 'General',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(formattedDate, style: kBodyStyle.copyWith(fontSize: 11)),
+                  const SizedBox(width: 8),
+                  _buildMenuButton(blog),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(blog.title ?? 'Untitled', style: kTitleStyle.copyWith(fontSize: 18)),
+              const SizedBox(height: 8),
+              Text(
+                blog.content ?? '',
+                style: kBodyStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _buildMiniStat(Icons.favorite_rounded, likeCount.toString(), Colors.redAccent),
+                  const SizedBox(width: 20),
+                  FutureBuilder<int>(
+                    future: _authMethods.countComments(blog.id!),
+                    builder: (context, snap) => _buildMiniStat(Icons.chat_bubble_rounded, (snap.data ?? 0).toString(), Colors.blueAccent),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(IconData icon, String value, Color color) {
     return Row(
       children: [
-        IconButton(
-          icon: const Icon(
-            Icons.mode_comment_outlined,
-            color: Colors.black87,
+        Icon(icon, size: 16, color: color.withValues(alpha: 0.7)),
+        const SizedBox(width: 6),
+        Text(value, style: kLabelStyle.copyWith(fontSize: 13, color: kTextSecondary)),
+      ],
+    );
+  }
+
+  Widget _buildMenuButton(BlogModel blog) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'edit') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PostEditor(isEdit: true, blog: blog)),
+          ).then((_) => _refreshBlogs());
+        } else if (value == 'delete') {
+          _showDeleteDialog(blog.id!);
+        }
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      icon: const Icon(Icons.more_vert_rounded, color: kTextLight, size: 20),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_rounded, size: 18, color: kAccentColor),
+              SizedBox(width: 12),
+              Text('Edit Post'),
+            ],
           ),
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              builder: (BuildContext context) {
-                return SizedBox(
-                  height: 400,
-                  child: Column(
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Comments',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ),
-                      Expanded(
-                        child: StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('Blog')
-                              .doc(blogId)
-                              .collection('comments')
-                              .orderBy('timestamp', descending: true)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            }
-
-                            if (!snapshot.hasData ||
-                                snapshot.data!.docs.isEmpty) {
-                              return const Center(
-                                  child: Text('No comments available.'));
-                            }
-
-                            return ListView(
-                              children: snapshot.data!.docs.map((doc) {
-                                var data = doc.data() as Map<String, dynamic>;
-                                return ListTile(
-                                  title: Text(data['userName'] ?? 'Anonymous'),
-                                  subtitle:
-                                      Text(data['commentText'] ?? 'No comment'),
-                                  trailing: Text(
-                                      data['timestamp'].toDate().toString()),
-                                );
-                              }).toList(),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
         ),
-        FutureBuilder<int>(
-          future: _authMethods.countComments(blogId),
-          builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-
-            return Text(
-              "${snapshot.data}",
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 14.0,
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          },
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_rounded, size: 18, color: kErrorColor),
+              SizedBox(width: 12),
+              Text('Delete', style: TextStyle(color: kErrorColor)),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'My Profile',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.blueGrey,
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.logout_sharp,
-              color: Colors.white,
-            ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
             onPressed: () async {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Alert!'),
-                    content: const Text('Are you want to logout..'),
-                    actions: <Widget>[
-                      TextButton(
-                        child: const Text('OK'),
-                        onPressed: () async {
-                          await pref.clear();
-                          _authMethods.logout(context);
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
+              await pref.clear();
+              if (mounted) {
+                _authMethods.logout(context);
+              }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kErrorColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Logout'),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshBlogs,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            children: [
-              Card(
-                elevation: 4, // Shadow effect
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15), // Rounded corners
-                ),
-                margin: const EdgeInsets.all(16), // Margin around the card
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                          File? imageFile = await _pickImage();
-                          if (imageFile != null) {
-                            setState(() {
-                              _mediaFile = imageFile;
-                            });
-                            await _uploadProfileImage(_mediaFile);
-                          }
-                        },
-                        child: ClipOval(
-                          clipBehavior: Clip.hardEdge,
-                          child: SizedBox(
-                            width: 80,
-                            height: 80,
-                            child:
-                                _authMethods.buildProfileImage(profileImageUrl),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              name ?? 'No Name Provided',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.color,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Spacing between name and email
-                            Text(
-                              email ?? 'No Email Provided',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.color,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(15.0),
-                child: Text(
-                  "My Blogs.",
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.headlineSmall?.color,
-                  ),
-                ),
-              ),
-              FutureBuilder<List<BlogModel>>(
-                future: _futureBlogs,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return const Center(
-                        child: Text('Error fetching blog data'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
-                        child: Text('You haven\'t posted any blogs!'));
-                  } else {
-                    final blogList = snapshot.data!;
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: blogList.length,
-                      itemBuilder: (context, index) {
-                        final blog = blogList[index];
-                        final Timestamp timestamp = blog.timestamp!;
-                        final DateTime dateTime = timestamp.toDate();
-                        final String formattedDate =
-                            DateFormat.yMMMd().add_jm().format(dateTime);
+    );
+  }
 
-                        final List<dynamic> likers = blog.like ?? [];
-                        final int likeCount = likers.length;
-
-                        final authorImage = pref.getString('imgUrl');
-
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 10.0, horizontal: 16.0),
-                          elevation: 5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(15), // Rounded corners
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    ClipOval(
-                                      child: _authMethods
-                                          .buildProfileImage(authorImage),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    // Increased spacing for better alignment
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            blog.authorName ?? 'Unknown Author',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              // Slightly larger font for emphasis
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit),
-                                          color: Colors.blueAccent,
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    PostEditor(
-                                                  isEdit: true,
-                                                  blog: blog,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete),
-                                          color: Colors.redAccent,
-                                          onPressed: () {
-                                            _authMethods.deleteBlogByUser(
-                                                context, blog.id!);
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: const Text(
-                                                    'Blog Deleted Successfully.'),
-                                                backgroundColor: Colors.teal,
-                                                behavior:
-                                                    SnackBarBehavior.floating,
-                                                action: SnackBarAction(
-                                                  label: 'Dismiss',
-                                                  textColor: Colors.yellow,
-                                                  onPressed: () {},
-                                                ),
-                                              ),
-                                            );
-                                            _refreshBlogs();
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  blog.title ?? 'Blog Title',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    // Larger title font for emphasis
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => BlogDetailScreen(
-                                          blog: blog,
-                                          image: authorImage,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10.0, horizontal: 14.0),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      blog.content ?? 'Blog Content',
-                                      style: const TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight
-                                            .w400, // Normal weight for content
-                                      ),
-                                      maxLines: 4,
-                                      overflow: TextOverflow
-                                          .ellipsis, // Ellipsis for long content
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            likeCount > 0
-                                                ? Icons.favorite
-                                                : Icons.favorite_border,
-                                            color: likeCount > 0
-                                                ? Colors.red
-                                                : Colors.grey,
-                                          ),
-                                          onPressed: () {},
-                                        ),
-                                        Text(
-                                          "$likeCount",
-                                          style: const TextStyle(
-                                            fontSize: 14.0,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    buildBlogRow(blog.id!),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.share_outlined,
-                                        color: Colors.black87,
-                                      ),
-                                      onPressed: () {
-                                        _authMethods.shareMessage(
-                                          blog.title!,
-                                          blog.content!,
-                                          blog.authorName!,
-                                          blog.timestamp!,
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Center(
-                                  child: Text(
-                                    formattedDate,
-                                    style: const TextStyle(
-                                      fontSize: 12, // Smaller font for date
-                                      color: Colors
-                                          .grey, // Grey color for subtle appearance
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
-              ),
-            ],
+  void _showDeleteDialog(String blogId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Delete Blog', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('This action cannot be undone. Are you sure you want to delete this blog post?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              await _authMethods.deleteBlogByUser(context, blogId);
+              if (mounted) {
+                Navigator.pop(context);
+                _refreshBlogs();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kErrorColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Delete'),
           ),
-        ),
+        ],
       ),
     );
   }

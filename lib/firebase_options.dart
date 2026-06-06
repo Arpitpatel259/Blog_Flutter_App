@@ -63,13 +63,13 @@ class DefaultFirebaseOptions {
     projectId: 'blog-eb3ee',
     storageBucket: 'blog-eb3ee.appspot.com',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDX-2qRwmf_6NJJ8qP2xBZUoBHOBEbYgSs',
     appId: '1:658979738135:ios:2784f25b16ad5638ca8252',
     messagingSenderId: '658979738135',
     projectId: 'blog-eb3ee',
     storageBucket: 'blog-eb3ee.appspot.com',
+    androidClientId: '658979738135-iiftg97q6j5rbml2paukbjut69ggl67i.apps.googleusercontent.com',
     iosBundleId: 'com.KC.blog',
   );
 }

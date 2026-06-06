@@ -1,21 +1,23 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:blog/Authentication/user_login_screen.dart';
 import 'package:blog/Authentication/authentication.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:blog/Utilities/validation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../Utilities/constant.dart';
 
 class UserRegisterScreen extends StatefulWidget {
   const UserRegisterScreen({super.key});
 
   @override
-  _UserRegisterScreen createState() => _UserRegisterScreen();
+  State<UserRegisterScreen> createState() => _UserRegisterScreenState();
 }
 
-class _UserRegisterScreen extends State<UserRegisterScreen> {
-  var email = "", password = "", confirmPassword = "";
+class _UserRegisterScreenState extends State<UserRegisterScreen> {
   bool _isObscure = true, _isObscure1 = true;
-  final formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+  
   final _nameController = TextEditingController(),
       _emailController = TextEditingController(),
       _mobileController = TextEditingController(),
@@ -32,132 +34,147 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
     super.dispose();
   }
 
-  Widget _buildTextFormField(
-      {required String label,
-      required TextInputType keyboardType,
-      required IconData icon,
-      required String hint,
-      required TextEditingController controller,
-      bool obscureText = false,
-      String? Function(String?)? validator,
-      IconButton? suffixIcon}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground)),
-        const SizedBox(height: defaultPadding),
-        TextFormField(
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          controller: controller,
-          validator: validator,
-          style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontFamily: 'OpenSans'),
-          decoration: InputDecoration(
-            fillColor: Theme.of(context).colorScheme.background,
-            filled: true,
-            border: const OutlineInputBorder(),
-            contentPadding: const EdgeInsets.only(top: 14.0),
-            prefixIcon:
-                Icon(icon, color: Theme.of(context).colorScheme.primary),
-            hintText: hint,
-            hintStyle:
-                TextStyle(color: Theme.of(context).colorScheme.onSurface),
-            suffixIcon: suffixIcon,
-          ),
-        ),
-        const SizedBox(height: defaultPadding),
-      ],
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData prefixIcon,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: kBodyStyle.copyWith(color: kTextLight),
+      prefixIcon: Icon(prefixIcon, color: kTextLight, size: 22),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: kInputFill,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: kErrorColor),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: kErrorColor, width: 1.5),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8, top: 20),
+      child: Text(
+        text,
+        style: kLabelStyle,
+      ),
     );
   }
 
   Widget _buildSignUpForm() {
     return Form(
-      key: formKey,
+      key: _formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTextFormField(
-            label: 'Name',
-            keyboardType: TextInputType.text,
-            icon: Icons.person,
-            hint: 'Enter Your Name',
+          _buildLabel('Full Name'),
+          TextFormField(
             controller: _nameController,
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (val) {
-              if (val == null || val.isEmpty) return 'Please Enter Your Name';
-              if (!val.isValidName) return 'Please Enter Valid Name';
+              if (val == null || val.isEmpty) return 'Please enter your name';
+              if (!val.isValidName) return 'Please enter a valid name';
               return null;
             },
+            decoration: _inputDecoration(
+              hint: 'John Doe',
+              prefixIcon: Icons.person_outline_rounded,
+            ),
           ),
-          _buildTextFormField(
-            label: 'Email Id',
-            keyboardType: TextInputType.emailAddress,
-            icon: Icons.email_outlined,
-            hint: 'Enter Your Email Id',
+          _buildLabel('Email Address'),
+          TextFormField(
             controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (val) {
-              if (val == null || val.isEmpty) return 'Please Enter Email';
-              if (!val.isValidEmail) return 'Please Enter Valid Email Id';
+              if (val == null || val.isEmpty) return 'Please enter your email';
+              if (!val.isValidEmail) return 'Please enter a valid email';
               return null;
             },
+            decoration: _inputDecoration(
+              hint: 'john@example.com',
+              prefixIcon: Icons.email_outlined,
+            ),
           ),
-          _buildTextFormField(
-            label: 'Mobile No',
-            keyboardType: TextInputType.phone,
-            icon: Icons.mobile_friendly_sharp,
-            hint: 'Enter Your Mobile No',
+          _buildLabel('Mobile Number'),
+          TextFormField(
             controller: _mobileController,
+            keyboardType: TextInputType.phone,
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (val) {
-              if (val == null || val.isEmpty) return 'Please Enter Mobile No';
-              if (!val.isValidPhone) return 'Please Enter Valid Mobile No';
+              if (val == null || val.isEmpty) return 'Please enter mobile number';
+              if (!val.isValidPhone) return 'Please enter a valid number';
               return null;
             },
+            decoration: _inputDecoration(
+              hint: '+1 234 567 890',
+              prefixIcon: Icons.phone_android_outlined,
+            ),
           ),
-          _buildTextFormField(
-            label: 'Password',
-            keyboardType: TextInputType.visiblePassword,
-            icon: Icons.password_sharp,
-            hint: 'Enter Your Password',
+          _buildLabel('Password'),
+          TextFormField(
             controller: _passwordController,
             obscureText: _isObscure,
-            suffixIcon: IconButton(
-              icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off,
-                  color: Theme.of(context).colorScheme.primary),
-              onPressed: () => setState(() => _isObscure = !_isObscure),
-            ),
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (val) {
-              if (val == null || val.isEmpty) return 'Please Enter Password';
-              if (!val.isValidPassword) return 'Please Enter Valid Password';
+              if (val == null || val.isEmpty) return 'Please enter password';
+              if (!val.isValidPassword) return 'Min. 6 characters required';
               return null;
             },
+            decoration: _inputDecoration(
+              hint: 'Create a password',
+              prefixIcon: Icons.lock_outline_rounded,
+              suffix: IconButton(
+                icon: Icon(
+                  _isObscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: kTextLight,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _isObscure = !_isObscure),
+              ),
+            ),
           ),
-          _buildTextFormField(
-            label: 'Confirm Password',
-            keyboardType: TextInputType.visiblePassword,
-            icon: Icons.password_sharp,
-            hint: 'Enter Confirm Password',
+          _buildLabel('Confirm Password'),
+          TextFormField(
             controller: _cPasswordController,
             obscureText: _isObscure1,
-            suffixIcon: IconButton(
-              icon: Icon(_isObscure1 ? Icons.visibility : Icons.visibility_off,
-                  color: Theme.of(context).colorScheme.primary),
-              onPressed: () => setState(() => _isObscure1 = !_isObscure1),
-            ),
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (val) {
-              if (val == null || val.isEmpty) {
-                return 'Please Enter Confirm Password';
-              }
-              if (!val.isValidPassword) {
-                return 'Please Enter Valid Confirm Password';
-              }
-              if (val != _passwordController.text) {
-                return 'Password Do Not Match!';
-              }
+              if (val == null || val.isEmpty) return 'Please confirm password';
+              if (val != _passwordController.text) return 'Passwords do not match';
               return null;
             },
+            decoration: _inputDecoration(
+              hint: 'Repeat your password',
+              prefixIcon: Icons.lock_reset_rounded,
+              suffix: IconButton(
+                icon: Icon(
+                  _isObscure1 ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: kTextLight,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _isObscure1 = !_isObscure1),
+              ),
+            ),
           ),
         ],
       ),
@@ -166,83 +183,53 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
 
   Widget _buildSignUpButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 25.0),
+      margin: const EdgeInsets.only(top: 40),
       width: double.infinity,
+      height: 60,
       child: ElevatedButton(
         onPressed: () async {
-          if (formKey.currentState!.validate()) {
-            setState(() {
-              email = _emailController.text;
-              password = _passwordController.text;
-              confirmPassword = _cPasswordController.text;
-            });
-            if (_nameController.text.isNotEmpty &&
-                _emailController.text.isNotEmpty &&
-                _mobileController.text.isNotEmpty &&
-                _passwordController.text.isNotEmpty &&
-                _cPasswordController.text.isNotEmpty) {
-              if (_passwordController.text == _cPasswordController.text) {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) =>
-                      const Center(child: CircularProgressIndicator()),
-                );
+          if (_formKey.currentState!.validate()) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(
+                child: CircularProgressIndicator(color: kPrimaryColor),
+              ),
+            );
 
-                await AuthMethods().registerUser(_nameController.text, email,
-                    _mobileController.text, password, confirmPassword);
+            await AuthMethods().registerUser(
+              _nameController.text,
+              _emailController.text,
+              _mobileController.text,
+              _passwordController.text,
+              _cPasswordController.text,
+            );
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text("Registration Successful"),
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
-                    behavior: SnackBarBehavior.floating,
-                    action: SnackBarAction(
-                      label: 'Dismiss',
-                      onPressed: () {},
-                    ),
-                  ),
-                );
+            Navigator.pop(context); // Close loading dialog
 
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const UserLoginScreen()),
-                );
-              }
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text(
-                      "Registration Unsuccessful. Please Check Your Details!"),
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                  behavior: SnackBarBehavior.floating,
-                  action: SnackBarAction(
-                    label: 'Dismiss',
-                    onPressed: () {},
-                  ),
-                ),
-              );
-            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("Account created successfully!"),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: kSuccessColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const UserLoginScreen()),
+            );
           }
         },
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.all(15.0),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
+          backgroundColor: kPrimaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          textStyle: kButtonStyle,
         ),
-        child: Text(
-          'Sign Up',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimary,
-            letterSpacing: 1.5,
-            fontSize: 18.0,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'OpenSans',
-          ),
-        ),
+        child: const Text('Create Account'),
       ),
     );
   }
@@ -250,92 +237,62 @@ class _UserRegisterScreen extends State<UserRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kSurfaceColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: Theme.of(context).colorScheme.onBackground),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kTextPrimary, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        elevation: 0, // Removes the shadow under the AppBar
       ),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
+        value: SystemUiOverlayStyle.dark,
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Theme.of(context).colorScheme.background,
-                      Theme.of(context).colorScheme.background,
-                      Theme.of(context).colorScheme.background,
-                      Theme.of(context).colorScheme.background,
-                    ],
-                    stops: const [0.1, 0.4, 0.7, 0.9],
-                  ),
-                ),
-                height: double.infinity,
-                width: double.infinity,
-              ),
-              SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 30.0, vertical: 30.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontFamily: 'OpenSans',
-                        fontSize: 30.0,
-                        fontWeight: FontWeight.bold,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Text('Create Account', style: kHeadingStyle),
+                  const SizedBox(height: 12),
+                  Text('Join our community of storytellers today.', style: kSubtitleStyle),
+                  
+                  _buildSignUpForm(),
+                  
+                  _buildSignUpButton(),
+                  
+                  const SizedBox(height: 40),
+                  
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const UserLoginScreen()),
                       ),
-                    ),
-                    _buildSignUpForm(),
-                    _buildSignUpButton(),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const UserLoginScreen()),
-                            (route) => false);
-                      },
                       child: RichText(
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text: 'Already have an Account? ',
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.onBackground,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              text: 'Already have an account? ',
+                              style: kBodyStyle,
                             ),
                             TextSpan(
                               text: 'Sign In',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: kLabelStyle.copyWith(color: kPrimaryColor),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

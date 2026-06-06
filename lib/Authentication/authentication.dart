@@ -146,6 +146,8 @@ class AuthMethods {
             await prefs.setString('name', user.displayName.toString());
             await prefs.setString('imgUrl', user.photoURL.toString());
 
+            if (!context.mounted) return;
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text("You Have Been Logged In Successfully!"),
@@ -241,6 +243,8 @@ class AuthMethods {
           await prefs.setString("userId", userSnapshot.id);
           await prefs.setString("imgUrl", userSnapshot['imgUrl'] ?? "");
 
+          if (!context.mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text("You Have Been Logged In Successfully!"),
@@ -288,20 +292,22 @@ class AuthMethods {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              'An error occurred while logging in. Please try again.'),
-          backgroundColor: Colors.teal,
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            disabledTextColor: Colors.white,
-            textColor: Colors.yellow,
-            onPressed: () {},
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'An error occurred while logging in. Please try again.'),
+            backgroundColor: Colors.teal,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Dismiss',
+              disabledTextColor: Colors.white,
+              textColor: Colors.yellow,
+              onPressed: () {},
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -318,12 +324,14 @@ class AuthMethods {
 
       if (userSnapshot.docs.isEmpty) {
         // If no document is found, inform the user
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No user found for that email in Firestore.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No user found for that email in Firestore.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
@@ -338,6 +346,8 @@ class AuthMethods {
         'passwordResetRequested': true,
         'lastPasswordResetRequest': FieldValue.serverTimestamp(),
       });
+
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -375,20 +385,22 @@ class AuthMethods {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              'An error occurred while processing your request. Please try again.'),
-          backgroundColor: Colors.teal,
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            disabledTextColor: Colors.white,
-            textColor: Colors.yellow,
-            onPressed: () {},
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'An error occurred while processing your request. Please try again.'),
+            backgroundColor: Colors.teal,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Dismiss',
+              disabledTextColor: Colors.white,
+              textColor: Colors.yellow,
+              onPressed: () {},
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -401,6 +413,8 @@ class AuthMethods {
       // Clear Shared Preferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear();
+
+      if (!context.mounted) return;
 
       Navigator.pushAndRemoveUntil(
           context,
@@ -455,6 +469,8 @@ class AuthMethods {
       titleController.clear();
       contentController.clear();
 
+      if (!context.mounted) return;
+
       // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -472,22 +488,24 @@ class AuthMethods {
         ),
       );
     } catch (e) {
-      // Show an error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to upload blog post: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            disabledTextColor: Colors.white,
-            textColor: Colors.yellow,
-            onPressed: () {
-              // Do whatever you want
-            },
+      if (context.mounted) {
+        // Show an error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload blog post: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Dismiss',
+              disabledTextColor: Colors.white,
+              textColor: Colors.yellow,
+              onPressed: () {
+                // Do whatever you want
+              },
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -502,7 +520,9 @@ class AuthMethods {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
       await firestore.collection('Blog').doc(blogId).delete();
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error deleting blog: $e');
+    }
   }
 
   Future<void> updateBlog(
@@ -538,6 +558,8 @@ class AuthMethods {
 
       await firestore.collection('Blog').doc(blogId).update(postData);
 
+      if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Blog post updated successfully!'),
@@ -554,13 +576,15 @@ class AuthMethods {
         ),
       );
     } catch (e) {
-      // Handle error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating blog post: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        // Handle error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating blog post: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -697,12 +721,12 @@ class AuthMethods {
 //Create comment in any blogs
   Future<void> addComment(String blogId, String commentText) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final user = _auth.currentUser!;
-    final userName = user.displayName ?? prefs.getString('name');
-    final userId = user.uid;
-
     try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final user = _auth.currentUser!;
+      final userName = user.displayName ?? prefs.getString('name');
+      final userId = user.uid;
+
       // Generate a new document reference with a unique ID
       final commentDoc = firestore
           .collection('Blog')
@@ -719,7 +743,7 @@ class AuthMethods {
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      // Handle any errors that occur during the add operation
+      debugPrint('Error adding comment: $e');
     }
   }
 
@@ -738,6 +762,7 @@ class AuthMethods {
       // Return the count of documents in the snapshot
       return snapshot.docs.length;
     } catch (e) {
+      debugPrint('Error counting comments: $e');
       return 0;
     }
   }
@@ -762,7 +787,7 @@ class AuthMethods {
       // Write the data to Firestore
       await savedPostsRef.set(data);
     } catch (e) {
-      // Log the error message
+      debugPrint('Error saving post: $e');
     }
   }
 
@@ -775,7 +800,9 @@ class AuthMethods {
           .doc(id);
 
       await savedPostsRef.delete();
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error removing save: $e');
+    }
   }
 
   Future<bool> isPostSaved(String userId, String postId) async {
@@ -844,7 +871,9 @@ class AuthMethods {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error fetching users who liked: $e');
+    }
     return users;
   }
 

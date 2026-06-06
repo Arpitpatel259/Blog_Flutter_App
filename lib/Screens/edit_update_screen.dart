@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:blog/Model/bloglist_model.dart';
 import 'package:blog/Authentication/authentication.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,23 +21,17 @@ class PostEditor extends StatefulWidget {
 }
 
 class _PostEditorState extends State<PostEditor> {
-  TextEditingController _titleController = TextEditingController();
-  TextEditingController _contentController = TextEditingController();
-  bool _isBold = false,
-      _isItalic = false,
-      _isUnderline = false,
-      _isStrikethrough = false;
+  late TextEditingController _titleController;
+  late TextEditingController _contentController;
   File? _mediaFile;
   String? _selectedCategory;
 
   @override
   void initState() {
-    if (widget.isEdit) {
-      _titleController = TextEditingController(text: widget.blog!.title);
-      _contentController = TextEditingController(text: widget.blog!.content);
-      _selectedCategory = widget.blog!.category;
-    }
     super.initState();
+    _titleController = TextEditingController(text: widget.isEdit ? widget.blog?.title : '');
+    _contentController = TextEditingController(text: widget.isEdit ? widget.blog?.content : '');
+    _selectedCategory = widget.isEdit ? widget.blog?.category : null;
   }
 
   @override
@@ -47,225 +41,205 @@ class _PostEditorState extends State<PostEditor> {
     super.dispose();
   }
 
-  Widget? _displayImage(String? base64String, File? mediaFile) {
-    if (base64String != null) {
-      // Decode Base64 string to bytes
-      Uint8List bytes = base64Decode(base64String);
-      // Create an Image from the bytes
-      return Image.memory(
-        bytes,
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
+  Widget _buildImagePreview() {
+    if (_mediaFile != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.file(_mediaFile!, height: 240, width: double.infinity, fit: BoxFit.cover),
+          ),
+          Positioned(
+            right: 12,
+            top: 12,
+            child: IconButton.filled(
+              onPressed: () => setState(() => _mediaFile = null),
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              style: IconButton.styleFrom(backgroundColor: Colors.black45),
+            ),
+          ),
+        ],
       );
-    } else if (mediaFile != null) {
-      return kIsWeb
-          ? Image.network(
-              mediaFile.path,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            )
-          : Image.file(
-              File(mediaFile.path),
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            );
+    } else if (widget.isEdit && widget.blog?.imageBase64 != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Image.memory(base64Decode(widget.blog!.imageBase64!), height: 240, width: double.infinity, fit: BoxFit.cover),
+      );
     } else {
-      return Image.asset(
-        'assets/logos/blog_sample.png',
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
+      return GestureDetector(
+        onTap: _pickImage,
+        child: Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: kInputFill,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: kInputBorder, width: 2, style: BorderStyle.none),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add_photo_alternate_rounded, size: 40, color: kPrimaryColor),
+              ),
+              const SizedBox(height: 12),
+              Text('Add a cover image', style: kLabelStyle.copyWith(color: kPrimaryColor)),
+              const SizedBox(height: 4),
+              Text('Resolution: 16:9 recommended', style: kBodyStyle.copyWith(fontSize: 12)),
+            ],
+          ),
+        ),
       );
     }
   }
 
-  Future<File?> _pickImage() async {
+  Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    return pickedFile != null ? File(pickedFile.path) : null;
-  }
-
-  void _uploadBlogPost() async {
-    if (_mediaFile != null) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      final name = FirebaseAuth.instance.currentUser?.displayName ??
-          prefs.getString('name');
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      await AuthMethods().uploadPost(
-        name!,
-        _titleController.text,
-        _contentController.text,
-        _mediaFile,
-        context,
-        category: _selectedCategory,
-      );
-
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainPage()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Please select an image!'),
-        backgroundColor: Colors.teal,
-        action: SnackBarAction(label: 'Dismiss', onPressed: () {}),
-      ));
+    if (pickedFile != null) {
+      setState(() => _mediaFile = File(pickedFile.path));
     }
   }
 
-  void _updateBlogPost() async {
+  void _submitPost() async {
+    if (_titleController.text.isEmpty || _contentController.text.isEmpty || _selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: kErrorColor,
+        ),
+      );
+      return;
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final name = FirebaseAuth.instance.currentUser?.displayName ??
-        prefs.getString('name');
+    final name = FirebaseAuth.instance.currentUser?.displayName ?? prefs.getString('name');
 
     showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      context: context, 
+      barrierDismissible: false, 
+      builder: (context) => const Center(child: CircularProgressIndicator(color: kPrimaryColor))
     );
 
-    await AuthMethods().updateBlog(
-      widget.blog!.id!,
-      name!,
-      _titleController.text,
-      _contentController.text,
-      _mediaFile,
-      widget.blog!.imageBase64!,
-      context,
-      category: _selectedCategory,
-    );
+    if (widget.isEdit) {
+      await AuthMethods().updateBlog(
+        widget.blog!.id!, 
+        name!, 
+        _titleController.text, 
+        _contentController.text, 
+        _mediaFile, 
+        widget.blog!.imageBase64!, 
+        context, 
+        category: _selectedCategory
+      );
+    } else {
+      if (_mediaFile == null) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an image')));
+        }
+        return;
+      }
+      await AuthMethods().uploadPost(name!, _titleController.text, _contentController.text, _mediaFile, context, category: _selectedCategory);
+    }
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const MainPage()),
-      (Route<dynamic> route) => false,
-    );
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const MainPage()), (route) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const activeIconColor = Colors.orangeAccent;
-    const inactiveIconColor = Colors.grey;
-
     return Scaffold(
+      backgroundColor: kSurfaceColor,
       appBar: AppBar(
-        title: Text(
-          widget.isEdit ? 'Update Blog' : 'Post Blog',
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.blueGrey,
+        title: Text(widget.isEdit ? 'Edit Story' : 'New Story'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.image, color: Colors.orangeAccent),
-            onPressed: () async {
-              File? imageFile = await _pickImage();
-              setState(() {
-                _mediaFile = imageFile;
-              });
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ElevatedButton(
+              onPressed: _submitPost,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Publish'),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.upload_sharp, color: Colors.white),
-            onPressed: () async {
-              if (_titleController.text.isNotEmpty &&
-                  _contentController.text.isNotEmpty &&
-                  _selectedCategory != null) {
-                widget.isEdit ? _updateBlogPost() : _uploadBlogPost();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: const Text('Please fill all fields!'),
-                  backgroundColor: Colors.teal,
-                  action: SnackBarAction(label: 'Dismiss', onPressed: () {}),
-                ));
-              }
-            },
-          ),
-          const SizedBox(width: 10.0),
         ],
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 200.0,
-                child: _displayImage(widget.blog!.imageBase64, _mediaFile),
-              ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'Enter your title',
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blueGrey[300]!),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blueGrey[300]!),
-                  ),
-                ),
-                items: [
-                  'Tech',
-                  'Lifestyle',
-                  'Education',
-                  'Travel',
-                  'Food',
-                  'God'
-                ].map((category) {
-                  return DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: _contentController,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                style: TextStyle(
-                  fontWeight: _isBold ? FontWeight.bold : FontWeight.normal,
-                  fontStyle: _isItalic ? FontStyle.italic : FontStyle.normal,
-                  decoration: _isUnderline
-                      ? TextDecoration.underline
-                      : _isStrikethrough
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Content',
-                  hintText: 'Tap to write',
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blueGrey[300]!),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8.0),
-            ],
-          ),
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildImagePreview(),
+            const SizedBox(height: 32),
+            Text('Story Category', style: kLabelStyle),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedCategory,
+              decoration: _inputDecoration(hint: 'Select a category'),
+              items: ['Tech', 'Lifestyle', 'Education', 'Travel', 'Food', 'God']
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedCategory = v),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: kTextLight),
+              dropdownColor: kSurfaceColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            const SizedBox(height: 24),
+            Text('Title', style: kLabelStyle),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _titleController,
+              style: kHeadingStyle.copyWith(fontSize: 22),
+              maxLines: null,
+              decoration: _inputDecoration(hint: 'Enter a catchy title...'),
+            ),
+            const SizedBox(height: 24),
+            Text('Content', style: kLabelStyle),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _contentController,
+              maxLines: null,
+              minLines: 10,
+              style: kBodyStyle.copyWith(fontSize: 16, height: 1.6),
+              decoration: _inputDecoration(hint: 'Tell your story here...'),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({required String hint}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: kBodyStyle.copyWith(color: kTextLight),
+      filled: true,
+      fillColor: kInputFill,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16), 
+        borderSide: BorderSide.none
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16), 
+        borderSide: BorderSide.none
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16), 
+        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)
       ),
     );
   }

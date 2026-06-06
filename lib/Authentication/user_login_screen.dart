@@ -9,13 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class UserLoginScreen extends StatefulWidget {
-  const UserLoginScreen({Key? key}) : super(key: key);
+  const UserLoginScreen({super.key});
 
   @override
-  _UserLoginScreen createState() => _UserLoginScreen();
+  State<UserLoginScreen> createState() => _UserLoginScreenState();
 }
 
-class _UserLoginScreen extends State<UserLoginScreen> {
+class _UserLoginScreenState extends State<UserLoginScreen> {
   bool _isObscure = true;
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
@@ -28,85 +28,98 @@ class _UserLoginScreen extends State<UserLoginScreen> {
     super.dispose();
   }
 
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData prefixIcon,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: kBodyStyle.copyWith(color: kTextLight),
+      prefixIcon: Icon(prefixIcon, color: kTextLight, size: 22),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: kInputFill,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: kErrorColor),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: kErrorColor, width: 1.5),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        text,
+        style: kLabelStyle,
+      ),
+    );
+  }
+
   Widget _buildForm() {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Email',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onBackground)),
-          const SizedBox(height: defaultPadding),
+          _buildLabel('Email Address'),
           TextFormField(
             keyboardType: TextInputType.emailAddress,
-            style: TextStyle(
-                fontFamily: 'OpenSans',
-                color: Theme.of(context).colorScheme.onBackground),
+            controller: emailController,
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please Enter Email';
-              } else if (!value.isValidEmail) {
-                return 'Please Enter Valid Email Id';
-              }
+              if (value == null || value.isEmpty) return 'Please enter your email';
+              if (!value.isValidEmail) return 'Please enter a valid email';
               return null;
             },
-            controller: emailController,
-            decoration: InputDecoration(
-              fillColor: Theme.of(context).colorScheme.background,
-              filled: true,
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: Icon(Icons.email,
-                  color: Theme.of(context).colorScheme.primary),
-              hintText: 'Enter your Email',
-              hintStyle:
-                  TextStyle(color: Theme.of(context).colorScheme.onSurface),
-              errorStyle: const TextStyle(fontSize: 15),
+            decoration: _inputDecoration(
+              hint: 'you@example.com',
+              prefixIcon: Icons.alternate_email_rounded,
             ),
           ),
-          const SizedBox(height: defaultPadding),
-          Text('Password',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onBackground)),
-          const SizedBox(height: defaultPadding),
+          const SizedBox(height: 24),
+          _buildLabel('Password'),
           TextFormField(
             keyboardType: TextInputType.visiblePassword,
+            obscureText: _isObscure,
+            controller: passwordController,
+            style: kBodyStyle.copyWith(color: kTextPrimary),
             validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please Enter Password';
-              } else if (!value.isValidPassword) {
-                return 'Please Enter Valid Password.';
-              }
+              if (value == null || value.isEmpty) return 'Please enter your password';
+              if (!value.isValidPassword) return 'Min. 6 characters required';
               return null;
             },
-            obscureText: _isObscure,
-            style: TextStyle(
-                fontFamily: 'OpenSans',
-                color: Theme.of(context).colorScheme.onBackground),
-            controller: passwordController,
-            decoration: InputDecoration(
-              suffixIcon: IconButton(
-                icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off,
-                    color: Theme.of(context).colorScheme.primary),
-                onPressed: () {
-                  setState(() {
-                    _isObscure = !_isObscure;
-                  });
-                },
+            decoration: _inputDecoration(
+              hint: 'Enter your password',
+              prefixIcon: Icons.lock_outline_rounded,
+              suffix: IconButton(
+                icon: Icon(
+                  _isObscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: kTextLight,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _isObscure = !_isObscure),
               ),
-              fillColor: Theme.of(context).colorScheme.background,
-              filled: true,
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: Icon(Icons.lock,
-                  color: Theme.of(context).colorScheme.primary),
-              hintText: 'Enter your Password',
-              hintStyle:
-                  TextStyle(color: Theme.of(context).colorScheme.onSurface),
-              errorStyle: const TextStyle(fontSize: 15),
             ),
           ),
         ],
@@ -115,183 +128,164 @@ class _UserLoginScreen extends State<UserLoginScreen> {
   }
 
   Widget _buildLoginBtn() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 25.0),
+    return SizedBox(
       width: double.infinity,
+      height: 60,
       child: ElevatedButton(
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
             showDialog(
               context: context,
               barrierDismissible: false,
-              builder: (context) =>
-                  const Center(child: CircularProgressIndicator()),
+              builder: (context) => const Center(
+                child: CircularProgressIndicator(color: kPrimaryColor),
+              ),
             );
             await AuthMethods().userLogin(
-                emailController.text, passwordController.text, context);
+              emailController.text,
+              passwordController.text,
+              context,
+            );
           }
         },
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.all(defaultPadding),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
+          backgroundColor: kPrimaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          textStyle: kButtonStyle,
         ),
-        child: const Text(
-          'Sign In',
-          style: TextStyle(
-            color: Colors.white,
-            letterSpacing: 1.5,
-            fontSize: 18.0,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'OpenSans',
-          ),
-        ),
+        child: const Text('Sign In'),
       ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Row(
+      children: [
+        Expanded(child: Divider(color: kInputBorder, thickness: 1)),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'OR CONTINUE WITH',
+            style: TextStyle(
+              fontSize: 10,
+              color: kTextLight,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: kInputBorder, thickness: 1)),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kSurfaceColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: Theme.of(context).colorScheme.onBackground),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kTextPrimary, size: 20),
           onPressed: () => Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const SplashScreen()),
-              (route) => false),
-        ),
-      ),
-      body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Stack(
-            children: <Widget>[
-              SizedBox(
-                height: double.infinity,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 40.0, vertical: 40.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontFamily: 'OpenSans',
-                          fontSize: 30.0,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onBackground,
-                        ),
-                      ),
-                      const SizedBox(height: defaultPadding),
-                      _buildForm(),
-                      Container(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => showForgetPasswordDialog(context),
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15.0,
-                              color: Theme.of(context).colorScheme.onBackground,
-                            ),
-                          ),
-                        ),
-                      ),
-                      _buildLoginBtn(),
-                      const Text(
-                        '-------------------- OR --------------------',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 20.0),
-                      Text(
-                        'Sign in with',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.0,
-                            color: Theme.of(context).colorScheme.onBackground),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 30.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: <Widget>[
-                            _buildSocialBtn(
-                                () async => await AuthMethods()
-                                    .signInWithGoogle(context),
-                                const AssetImage('assets/logos/google.png')),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10.0),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const UserRegisterScreen()),
-                          );
-                        },
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Don\'t have an Account? ',
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              TextSpan(
-                                text: 'Sign Up',
-                                style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            ],
+            context,
+            MaterialPageRoute(builder: (context) => const SplashScreen()),
+            (route) => false,
           ),
         ),
       ),
-    );
-  }
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark,
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  Text('Welcome back!', style: kHeadingStyle),
+                  const SizedBox(height: 12),
+                  Text('Fill your details or continue with social media', style: kSubtitleStyle),
 
-  Widget _buildSocialBtn(Function onTap, AssetImage logo) {
-    return GestureDetector(
-      onTap: () => onTap(),
-      child: Container(
-        height: 60.0,
-        width: 60.0,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.transparent,
-              offset: Offset(0, 2),
-              blurRadius: 6.0,
+                  const SizedBox(height: 48),
+
+                  _buildForm(),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => showForgetPasswordDialog(context),
+                      child: Text(
+                        'Forgot Password?',
+                        style: kLabelStyle.copyWith(color: kPrimaryColor, fontSize: 13),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  _buildLoginBtn(),
+                  const SizedBox(height: 40),
+                  _buildDivider(),
+                  const SizedBox(height: 32),
+
+                  Center(
+                    child: InkWell(
+                      onTap: () async => await AuthMethods().signInWithGoogle(context),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: kSurfaceColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: kInputBorder),
+                          boxShadow: kSoftShadow,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Image(image: AssetImage('assets/logos/google.png'), height: 24),
+                            const SizedBox(width: 12),
+                            Text('Google', style: kLabelStyle),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const UserRegisterScreen()),
+                      ),
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: "Don't have an account? ",
+                              style: kBodyStyle,
+                            ),
+                            TextSpan(
+                              text: 'Create account',
+                              style: kLabelStyle.copyWith(color: kPrimaryColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
-          ],
-          image: DecorationImage(image: logo),
+          ),
         ),
       ),
     );
@@ -299,80 +293,69 @@ class _UserLoginScreen extends State<UserLoginScreen> {
 
   void showForgetPasswordDialog(BuildContext context) {
     final formKey = GlobalKey<FormState>();
-    final emailController = TextEditingController();
+    final forgotEmailController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Reset Password'),
-          content: Form(
-            key: formKey,
+        return Dialog(
+          backgroundColor: kSurfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Email',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onBackground)),
-                const SizedBox(height: defaultPadding),
-                TextFormField(
-                  keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(
-                      fontFamily: 'OpenSans',
-                      color: Theme.of(context).colorScheme.onBackground),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please Enter Email';
-                    } else if (!value.isValidEmail) {
-                      return 'Please Enter Valid Email Id';
-                    }
-                    return null;
-                  },
-                  controller: emailController,
-                  decoration: InputDecoration(
-                    fillColor: Theme.of(context).colorScheme.background,
-                    filled: true,
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.only(top: 14.0),
-                    prefixIcon: Icon(Icons.email,
-                        color: Theme.of(context).colorScheme.primary),
-                    hintText: 'Enter your Email',
-                    hintStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface),
-                    errorStyle: const TextStyle(fontSize: 15),
+                Text('Reset Password', style: kTitleStyle),
+                const SizedBox(height: 12),
+                Text("We'll send a recovery link to your email.", style: kBodyStyle),
+                const SizedBox(height: 32),
+
+                Form(
+                  key: formKey,
+                  child: TextFormField(
+                    keyboardType: TextInputType.emailAddress,
+                    controller: forgotEmailController,
+                    decoration: _inputDecoration(
+                      hint: 'Email Address',
+                      prefixIcon: Icons.mail_outline_rounded,
+                    ),
                   ),
                 ),
-                const SizedBox(height: defaultPadding),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      // Replace this with the actual email input from the user
-                      String email = emailController.text.toString();
 
-                      if (email.isNotEmpty) {
-                        await AuthMethods()
-                            .resetPasswordAndNotify(email, context);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                const Text('Please enter your email address.'),
-                            backgroundColor: Colors.teal,
-                            behavior: SnackBarBehavior.floating,
-                            action: SnackBarAction(
-                              label: 'Dismiss',
-                              disabledTextColor: Colors.white,
-                              textColor: Colors.yellow,
-                              onPressed: () {},
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text("Forgot Password"),
-                  ),
+                const SizedBox(height: 40),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Cancel', style: kLabelStyle.copyWith(color: kTextLight)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (formKey.currentState!.validate()) {
+                            await AuthMethods().resetPasswordAndNotify(
+                              forgotEmailController.text,
+                              context,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text('Send Link'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:blog/Authentication/authentication.dart';
 import 'package:blog/Model/bloglist_model.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -26,373 +27,384 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
       Future<List<Map<String, String>>> usersFuture) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
-        return FutureBuilder<List<Map<String, String>>>(
-          future: usersFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No users found.'));
-            } else {
-              // Ensure all images are pre-fetched
-              for (var user in snapshot.data!) {
-                _getImage(user['userId']!);
-              }
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: kSurfaceColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: kInputBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(title, style: kTitleStyle),
+              const SizedBox(height: 20),
+              Expanded(
+                child: FutureBuilder<List<Map<String, String>>>(
+                  future: usersFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.people_outline, size: 48, color: kTextLight),
+                          const SizedBox(height: 16),
+                          Text('No users yet', style: kSubtitleStyle),
+                        ],
+                      ));
+                    } else {
+                      for (var user in snapshot.data!) {
+                        _getImage(user['userId']!);
+                      }
 
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ListView.builder(
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final user = snapshot.data![index];
-                    final String? authorId = user['userId'];
-                    final String? authorImage = _profileImages[authorId];
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final user = snapshot.data![index];
+                          final String? authorId = user['userId'];
+                          final String? authorImage = _profileImages[authorId];
 
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-                      leading: CircleAvatar(
-                        radius: 25,
-                        child: AuthMethods().buildProfileImage(authorImage),
-                      ),
-                      title: Text(user['username'] ?? 'Unknown'),
-                    );
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: kInputFill,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: kSurfaceColor,
+                                  child: AuthMethods().buildProfileImage(authorImage),
+                                ),
+                                const SizedBox(width: 16),
+                                Text(user['username'] ?? 'Unknown', style: kLabelStyle.copyWith(fontSize: 16)),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    }
                   },
                 ),
-              );
-            }
-          },
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
   Future<void> _getImage(String userId) async {
-    if (_profileImages.containsKey(userId)) {
-      return; // Image already fetched
-    }
+    if (_profileImages.containsKey(userId)) return;
 
     try {
       DocumentSnapshot userSnapshot =
           await FirebaseFirestore.instance.collection('User').doc(userId).get();
 
-      if (userSnapshot.exists) {
+      if (userSnapshot.exists && mounted) {
         setState(() {
-          _profileImages[userId] =
-              userSnapshot['imgUrl'] ?? ''; // Handle null value
+          _profileImages[userId] = userSnapshot['imgUrl'] ?? '';
         });
       }
     } catch (e) {
-      // Handle error if needed
-      print('Error fetching image for user $userId: $e');
+      debugPrint('Error fetching image for user $userId: $e');
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _getImage(widget.blog.userId!);
+    if (widget.blog.userId != null) {
+      _getImage(widget.blog.userId!);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final blog = widget.blog;
     final String? image = widget.image;
-    final String formattedDate =
-        DateFormat.yMMMd().add_jm().format(blog.timestamp!.toDate());
-    final int likeCount = (blog.like ?? []).length;
+    final String formattedDate = blog.timestamp != null
+        ? DateFormat('MMMM dd, yyyy • hh:mm a').format(blog.timestamp!.toDate())
+        : 'Unknown Date';
+    final int likeCount = blog.like.length;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        title: ClipOval(
-          child: AuthMethods().buildProfileImage(image),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {
-              authMethods.shareMessage(blog.title!, blog.content!,
-                  blog.authorName!, blog.timestamp!);
-            },
+      backgroundColor: kBackgroundColor,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            backgroundColor: kPrimaryColor,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share_rounded, color: Colors.white),
+                onPressed: () {
+                  authMethods.shareMessage(blog.title!, blog.content!,
+                      blog.authorName!, blog.timestamp!);
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: blog.imageBase64 != null
+                  ? Image.memory(
+                      base64Decode(blog.imageBase64!),
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      color: kPrimaryColor.withValues(alpha: 0.1),
+                      child: const Icon(Icons.image_outlined, size: 80, color: kPrimaryColor),
+                    ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: kSurfaceColor,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        blog.category ?? 'General',
+                        style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(blog.title ?? 'Untitled', style: kHeadingStyle.copyWith(fontSize: 24)),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: kInputFill,
+                          child: AuthMethods().buildProfileImage(image),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(blog.authorName ?? 'Anonymous', style: kLabelStyle),
+                            Text(formattedDate, style: kBodyStyle.copyWith(fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Divider(color: kInputBorder),
+                    const SizedBox(height: 24),
+                    Text(
+                      blog.content ?? '',
+                      style: kBodyStyle.copyWith(
+                        fontSize: 16,
+                        height: 1.8,
+                        color: kTextPrimary.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatButton(
+                          icon: Icons.favorite_rounded,
+                          label: 'Likes',
+                          count: likeCount.toString(),
+                          color: Colors.redAccent,
+                          onTap: () => _showUsersList(context, "Likes", authMethods.getUsersWhoLiked(blog.id!)),
+                        ),
+                        _buildStatButton(
+                          icon: Icons.chat_bubble_rounded,
+                          label: 'Comments',
+                          count: '...', // Will be loaded by future builder
+                          color: Colors.blueAccent,
+                          isComment: true,
+                          blogId: blog.id!,
+                          onTap: () => _showComments(context, blog.id!),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+    );
+  }
+
+  Widget _buildStatButton({
+    required IconData icon,
+    required String label,
+    required String count,
+    required Color color,
+    required VoidCallback onTap,
+    bool isComment = false,
+    String? blogId,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              blog.title ?? '',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.headlineSmall?.color,
-              ),
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              "Published by: ${blog.authorName ?? ''}",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleMedium?.color,
-              ),
-            ),
-            Text(
-              formattedDate,
-              style: TextStyle(
-                color: Theme.of(context).textTheme.titleSmall?.color,
-              ),
-            ),
-            const SizedBox(height: 16),
-            blog.imageBase64 != null
-                ? Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow,
-                          blurRadius: 8.0,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: Image.memory(
-                        base64Decode(blog.imageBase64!),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 200.0,
-                      ),
-                    ),
-                  )
-                : Container(
-                    height: 200.0,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow,
-                          blurRadius: 8.0,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_outlined,
-                        size: 48,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Theme.of(context).dividerColor),
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: SelectableText(
-                blog.content ?? '',
-                style: TextStyle(
-                  fontSize: 18.0,
-                  height: 1.5,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 4),
+            if (isComment && blogId != null)
+              FutureBuilder<int>(
+                future: authMethods.countComments(blogId),
+                builder: (context, snapshot) => Text(
+                  (snapshot.data ?? 0).toString(),
+                  style: kLabelStyle.copyWith(color: color, fontSize: 16),
                 ),
-                textAlign: TextAlign.justify,
+              )
+            else
+              Text(
+                count,
+                style: kLabelStyle.copyWith(color: color, fontSize: 16),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.thumb_up),
-                        onPressed: () {
-                          _showUsersList(context, "Likes",
-                              authMethods.getUsersWhoLiked(blog.id!));
-                        },
-                      ),
-                      Text(
-                        likeCount == 1 ? '$likeCount Like' : '$likeCount Likes',
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                      const SizedBox(width: 30),
-                      IconButton(
-                        icon: const Icon(Icons.comment),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (BuildContext context) {
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  bottom:
-                                      MediaQuery.of(context).viewInsets.bottom,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: StreamBuilder<QuerySnapshot>(
-                                          stream: _firestore
-                                              .collection('Blog')
-                                              .doc(blog.id!)
-                                              .collection('comments')
-                                              .orderBy('timestamp',
-                                                  descending: true)
-                                              .snapshots(),
-                                          builder: (context, snapshot) {
-                                            if (snapshot.connectionState ==
-                                                ConnectionState.waiting) {
-                                              return const Center(
-                                                  child:
-                                                      CircularProgressIndicator());
-                                            }
-
-                                            if (!snapshot.hasData ||
-                                                snapshot.data!.docs.isEmpty) {
-                                              return const Center(
-                                                  child:
-                                                      Text('No comments yet.'));
-                                            }
-
-                                            final comments =
-                                                snapshot.data!.docs;
-
-                                            return ListView.builder(
-                                              shrinkWrap: true,
-                                              physics:
-                                                  const NeverScrollableScrollPhysics(),
-                                              itemCount: comments.length,
-                                              itemBuilder: (context, index) {
-                                                final commentData =
-                                                    comments[index].data()
-                                                        as Map<String, dynamic>;
-                                                final userName =
-                                                    commentData['userName'] ??
-                                                        'Anonymous';
-                                                final commentText = commentData[
-                                                        'commentText'] ??
-                                                    '';
-
-                                                final timestamp =
-                                                    commentData['timestamp'];
-                                                final DateTime? dateTime =
-                                                    timestamp != null
-                                                        ? (timestamp
-                                                                as Timestamp)
-                                                            .toDate()
-                                                        : null;
-                                                final String formattedDate =
-                                                    dateTime != null
-                                                        ? DateFormat.yMMMd()
-                                                            .format(dateTime)
-                                                        : '';
-
-                                                final String? authorId =
-                                                    commentData['userId'];
-                                                _getImage(authorId!);
-                                                final String? authorImage =
-                                                    _profileImages[authorId];
-
-                                                return ListTile(
-                                                  leading: CircleAvatar(
-                                                    backgroundColor:
-                                                        Colors.blueGrey,
-                                                    backgroundImage:
-                                                        authorImage != null &&
-                                                                authorImage
-                                                                    .isNotEmpty
-                                                            ? NetworkImage(
-                                                                authorImage)
-                                                            : null,
-                                                    child: authorImage ==
-                                                                null ||
-                                                            authorImage.isEmpty
-                                                        ? const Icon(
-                                                            Icons.person,
-                                                            color: Colors.white)
-                                                        : null,
-                                                  ),
-                                                  title: Text(
-                                                    userName,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 16,
-                                                    ),
-                                                  ),
-                                                  subtitle: Text(
-                                                    commentText,
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                  trailing: Text(
-                                                    formattedDate,
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      FutureBuilder<int>(
-                        future: authMethods.countComments(blog.id!),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<int> snapshot) {
-                          if (snapshot.hasError) {
-                            return Text('Error: ${snapshot.error}');
-                          }
-
-                          return Text(
-                            "${snapshot.data} comments",
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).textTheme.bodyMedium?.color,
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            Text(label, style: kBodyStyle.copyWith(color: color.withValues(alpha: 0.7), fontSize: 12)),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showComments(BuildContext context, String blogId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: kSurfaceColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: kInputBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text('Comments', style: kTitleStyle),
+              const SizedBox(height: 24),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                      .collection('Blog')
+                      .doc(blogId)
+                      .collection('comments')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.chat_bubble_outline, size: 48, color: kTextLight),
+                          const SizedBox(height: 16),
+                          Text('Be the first to comment', style: kSubtitleStyle),
+                        ],
+                      ));
+                    }
+                    final comments = snapshot.data!.docs;
+                    return ListView.builder(
+                      controller: controller,
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        final commentData = comments[index].data() as Map<String, dynamic>;
+                        final String userId = commentData['userId'] ?? '';
+                        _getImage(userId);
+                        final String? authorImage = _profileImages[userId];
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: kInputFill,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: kSurfaceColor,
+                                child: AuthMethods().buildProfileImage(authorImage),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(commentData['userName'] ?? 'Anonymous', style: kLabelStyle),
+                                    const SizedBox(height: 4),
+                                    Text(commentData['commentText'] ?? '', style: kBodyStyle.copyWith(color: kTextPrimary)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

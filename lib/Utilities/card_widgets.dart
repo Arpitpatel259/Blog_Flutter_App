@@ -1,12 +1,10 @@
+import 'package:blog/Authentication/authentication.dart';
 import 'package:blog/Model/bloglist_model.dart';
-import 'package:flutter/material.dart';
+import 'package:blog/Screens/blog_details_screen.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../Authentication/authentication.dart';
-import '../Screens/blog_details_screen.dart';
-import 'constant.dart';
 
 class BlogList extends StatefulWidget {
   const BlogList({super.key});
@@ -21,9 +19,9 @@ class _BlogListState extends State<BlogList> {
 
   List<BlogModel> _blogList = [];
   List<BlogModel> _filteredBlogList = [];
-  bool _isLoading = false;
+  bool _isLoading = true;
   final Map<String, String> _profileImages = {};
-  String _selectedCategory = 'All'; // Initially show all categories
+  String _selectedCategory = 'All';
   final List<String> _categories = [
     'All',
     'Tech',
@@ -33,585 +31,344 @@ class _BlogListState extends State<BlogList> {
     'Food',
     'God'
   ];
-  bool isPostSaved = false;
 
   @override
   void initState() {
     super.initState();
-    _getUserId();
     _refreshBlogs();
   }
 
   Future<void> _refreshBlogs() async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    setState(() {
-      _isLoading = true;
-    });
+    if (!mounted) return;
+    setState(() => _isLoading = true);
 
-    final blogs = await _authMethods.getAllBlogs();
-    savedPostList =
-        await _authMethods.getSavedPosts(pref.getString("userId") ?? "");
-
-    blogs.map((e) => savedPostList.any((element) {
-          if (element.id == e.id) {
-            e.isSaved = true;
-            return true;
-          }
-          return false;
-        }));
-
-    setState(() {
-      _blogList = blogs;
-      _filterBlogs();
-    });
-
-
-    for (var blog in blogs) {
-      await _getImage(blog.userId ?? "");
+    try {
+      final blogs = await _authMethods.getAllBlogs();
+      if (mounted) {
+        setState(() {
+          _blogList = blogs;
+          _filterBlogs();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   void _filterBlogs() {
-    setState(() {
-      if (_selectedCategory == 'All') {
-        _filteredBlogList = _blogList;
-      } else {
-        _filteredBlogList = _blogList
-            .where((blog) => blog.category == _selectedCategory)
-            .toList();
-      }
-    });
-  }
-
-  bool isLikedByCurrentUser(List<dynamic>? likes, String userId) {
-    if (likes == null) {
-      return false; // Return false if the likes list is null
-    }
-    return likes.any((like) => like['userId'] == userId);
-  }
-
-  Future<void> _toggleLike(String blogId, bool isLiked) async {
-    final prefs = await SharedPreferences.getInstance();
-    String userName = prefs.getString('name') ?? 'Anonymous';
-    String userId = prefs.getString('userId') ?? 'anonymous_user';
-
-    // Create a userLikeInfo object
-    Map<String, String> userLikeInfo = {
-      'userId': userId,
-      'userName': userName,
-    };
-
-    // Find the blog in the local state
-    final blogIndex = _filteredBlogList.indexWhere((blog) => blog.id == blogId);
-    if (blogIndex == -1) return; // If the blog is not found, exit
-
-    // Update local state optimistically
-    List<dynamic> updatedLikes;
-    if (isLiked) {
-      updatedLikes = _filteredBlogList[blogIndex]
-              .like
-              .where((like) => like['userId'] != userId)
-              .toList();
+    if (_selectedCategory == 'All') {
+      _filteredBlogList = _blogList;
     } else {
-      updatedLikes = [
-        ...(_filteredBlogList[blogIndex].like),
-        userLikeInfo
-      ];
-    }
-
-    setState(() {
-      _filteredBlogList[blogIndex].like = updatedLikes;
-    });
-
-    try {
-      // Update Firestore
-      final updateData = isLiked
-          ? {
-              'likes': FieldValue.arrayRemove([userLikeInfo])
-            }
-          : {
-              'likes': FieldValue.arrayUnion([userLikeInfo])
-            };
-
-      await _firestore.collection('Blog').doc(blogId).update(updateData);
-    } catch (e) {
-      // Handle errors gracefully, maybe log or show a message
-      // Optionally, revert the optimistic update if necessary
+      _filteredBlogList = _blogList
+          .where((blog) => blog.category == _selectedCategory)
+          .toList();
     }
   }
 
   Future<void> _getImage(String userId) async {
-    if (_profileImages.containsKey(userId)) {
-      return; // Image already fetched
+    if (userId.isEmpty || _profileImages.containsKey(userId)) return;
+
+    try {
+      DocumentSnapshot userSnapshot =
+          await _firestore.collection('User').doc(userId).get();
+      if (userSnapshot.exists && mounted) {
+        setState(() {
+          _profileImages[userId] = userSnapshot['imgUrl'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching image: $e');
     }
-
-    DocumentSnapshot userSnapshot =
-        await FirebaseFirestore.instance.collection('User').doc(userId).get();
-
-    if (userSnapshot.exists) {
-      setState(() {
-        _profileImages[userId] = userSnapshot['imgUrl'];
-      });
-    }
-  }
-
-  void _showCommentBottomSheet(String blogId) {
-    final TextEditingController commentController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _firestore
-                        .collection('Blog')
-                        .doc(blogId)
-                        .collection('comments')
-                        .orderBy('timestamp', descending: true)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Text('No comments yet.'));
-                      }
-
-                      final comments = snapshot.data!.docs;
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: comments.length,
-                        itemBuilder: (context, index) {
-                          final commentData =
-                              comments[index].data() as Map<String, dynamic>;
-                          final userName =
-                              commentData['userName'] ?? 'Anonymous';
-                          final commentText = commentData['commentText'] ?? '';
-
-                          final timestamp = commentData['timestamp'];
-                          final DateTime? dateTime = timestamp != null
-                              ? (timestamp as Timestamp).toDate()
-                              : null;
-                          final String formattedDate = dateTime != null
-                              ? DateFormat.yMMMd().format(dateTime)
-                              : '';
-
-                          final String? authorId = commentData['userId'];
-                          final String? authorImage = _profileImages[authorId];
-
-                          return ListTile(
-                            leading: ClipOval(
-                              child: Container(
-                                color: Colors.blueGrey,
-                                child:
-                                    _authMethods.buildProfileImage(authorImage),
-                              ),
-                            ),
-                            title: Text(
-                              userName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Text(
-                              commentText,
-                              style: const TextStyle(
-                                fontSize: 14,
-                              ),
-                            ),
-                            trailing: Text(
-                              formattedDate,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: commentController,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter your comment',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: () async {
-                        if (commentController.text.isNotEmpty) {
-                          await _authMethods.addComment(
-                            blogId,
-                            commentController.text,
-                          );
-                          commentController.clear();
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<String> _getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('userId') ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Blogs',
-          style: TextStyle(color: Colors.white),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueGrey, Colors.blueGrey],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      backgroundColor: kBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildCategoryFilter(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 3))
+                  : RefreshIndicator(
+                      onRefresh: _refreshBlogs,
+                      color: kPrimaryColor,
+                      backgroundColor: kSurfaceColor,
+                      child: _filteredBlogList.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              itemCount: _filteredBlogList.length,
+                              physics: const BouncingScrollPhysics(),
+                              itemBuilder: (context, index) {
+                                final blog = _filteredBlogList[index];
+                                if (blog.userId != null) _getImage(blog.userId!);
+                                return _buildBlogCard(blog);
+                              },
+                            ),
+                    ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Discover', style: kHeadingStyle),
+              Text('Explore stories from around the world', style: kBodyStyle),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: kSurfaceColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: kInputBorder),
+            ),
+            child: const Icon(Icons.search_rounded, color: kTextPrimary, size: 24),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilter() {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        physics: const BouncingScrollPhysics(),
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final isSelected = _selectedCategory == category;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedCategory = category;
+                  _filterBlogs();
+                });
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? kPrimaryColor : kSurfaceColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? kPrimaryColor : kInputBorder,
+                    width: 1,
+                  ),
+                  boxShadow: isSelected ? kSoftShadow : null,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  category,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : kTextSecondary,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: kSurfaceColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kInputBorder),
+                ),
+                child: const Icon(Icons.auto_stories_outlined, size: 48, color: kTextLight),
+              ),
+              const SizedBox(height: 24),
+              Text('No stories yet', style: kTitleStyle),
+              const SizedBox(height: 8),
+              Text('Be the first one to share a story in this category',
+                style: kBodyStyle,
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refreshBlogs,
-              child: Column(
+    );
+  }
+
+  Widget _buildBlogCard(BlogModel blog) {
+    final String authorId = blog.userId ?? '';
+    final String? pImage = _profileImages[authorId];
+    final int likeCount = blog.like.length;
+    final formattedDate = blog.timestamp != null
+        ? DateFormat('MMM dd, yyyy').format(blog.timestamp!.toDate())
+        : '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(kCardRadius),
+        border: Border.all(color: kInputBorder, width: 1),
+        boxShadow: kSoftShadow,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(kCardRadius),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlogDetailScreen(blog: blog, image: pImage),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: _categories.map((category) {
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: ChoiceChip(
-                              label: Text(category),
-                              selected: _selectedCategory == category,
-                              onSelected: (bool selected) {
-                                setState(() {
-                                  _selectedCategory = category;
-                                  _filterBlogs(); // Filter the blogs based on the selected category
-                                });
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: kPrimaryColor.withValues(alpha: 0.2), width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: kInputFill,
+                      child: ClipOval(child: _authMethods.buildProfileImage(pImage)),
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: _filteredBlogList.isEmpty
-                        ? const Center(
-                            child:
-                                Text('No posts available for this category.'))
-                        : ListView.builder(
-                            itemCount: _filteredBlogList.length,
-                            itemBuilder: (context, index) {
-                              final blog = _filteredBlogList[index];
-
-                              final Timestamp timestamp = blog.timestamp!;
-                              final DateTime dateTime = timestamp.toDate();
-                              final String formattedDate =
-                                  DateFormat.yMMMd().add_jm().format(dateTime);
-
-                              return FutureBuilder<SharedPreferences>(
-                                future: SharedPreferences.getInstance(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData) {
-                                    return const Center(
-                                        child: CircularProgressIndicator());
-                                  }
-                                  final prefs = snapshot.data!;
-                                  final String userId =
-                                      prefs.getString('userId') ?? 'Anonymous';
-
-                                  final String authorId = blog.userId!;
-                                  final List<dynamic> likes = blog.like; // Default to an empty list if null
-                                  final bool isLiked =
-                                      isLikedByCurrentUser(likes, userId);
-                                  final int likeCount = likes.length;
-                                  final String? authorImage =
-                                      _profileImages[authorId];
-
-                                  return GestureDetector(
-                                    onTap: () {},
-                                    child: Card(
-                                      elevation: 4.0, // Add subtle shadow
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            12.0), // Rounded corners
-                                      ),
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 8.0, horizontal: 16.0),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    ClipOval(
-                                                      child: _authMethods
-                                                          .buildProfileImage(
-                                                              authorImage),
-                                                    ),
-                                                    const SizedBox(width: 12.0),
-                                                    // Increased spacing
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          blog.authorName ??
-                                                              'Unknown',
-                                                          style:
-                                                              const TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 16.0,
-                                                            // Improved font size
-                                                            color:
-                                                                Colors.black87,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 4.0),
-                                                        // Improved spacing
-                                                        Text(
-                                                          formattedDate,
-                                                          // Moved date here for better alignment
-                                                          style:
-                                                              const TextStyle(
-                                                            fontSize: 12.0,
-                                                            color:
-                                                                Colors.black54,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 16.0),
-                                            Text(
-                                              blog.title ?? 'Blog Title',
-                                              style: const TextStyle(
-                                                fontSize:
-                                                    20.0, // Larger title font size
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            const SizedBox(height: 8.0),
-                                            GestureDetector(
-                                              onTap: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        BlogDetailScreen(
-                                                      blog: blog,
-                                                      image: authorImage,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 10.0,
-                                                        horizontal: 14.0),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey[300],
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  blog.content ??
-                                                      'Blog Content',
-                                                  style: const TextStyle(
-                                                    color: Colors.black87,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight
-                                                        .w400, // Normal weight for content
-                                                  ),
-                                                  maxLines: 4,
-                                                  overflow: TextOverflow
-                                                      .ellipsis, // Ellipsis for long content
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16.0),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    IconButton(
-                                                      icon: Icon(
-                                                        isLiked
-                                                            ? Icons.favorite
-                                                            : Icons
-                                                                .favorite_border,
-                                                        color: isLiked
-                                                            ? Colors.red
-                                                            : Colors.grey,
-                                                      ),
-                                                      onPressed: () {
-                                                        _toggleLike(
-                                                            blog.id!, isLiked);
-                                                      },
-                                                    ),
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                        Icons
-                                                            .mode_comment_outlined,
-                                                        color: Colors.blueGrey,
-                                                      ),
-                                                      onPressed: () {
-                                                        _authMethods
-                                                            .countComments(
-                                                                blog.id!);
-                                                        _showCommentBottomSheet(
-                                                            blog.id!);
-                                                      },
-                                                    ),
-                                                    FutureBuilder<int>(
-                                                      future: _authMethods
-                                                          .countComments(
-                                                              blog.id!),
-                                                      builder:
-                                                          (context, snapshot) {
-                                                        if (snapshot.hasError) {
-                                                          return const Text(
-                                                              'Error');
-                                                        }
-
-                                                        return Text(
-                                                          "${snapshot.data ?? 0}",
-                                                          style:
-                                                              const TextStyle(
-                                                            fontSize: 14.0,
-                                                            color:
-                                                                Colors.black87,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                                IconButton(
-                                                  icon: blog.isSaved
-                                                      ? const Icon(
-                                                          Icons.bookmark,
-                                                          color:
-                                                              Colors.blueGrey,
-                                                        )
-                                                      : const Icon(
-                                                          Icons
-                                                              .bookmark_border_outlined,
-                                                          color:
-                                                              Colors.blueGrey,
-                                                        ),
-                                                  onPressed: () async {
-                                                    setState(() {
-                                                      blog.isSaved =
-                                                          !blog.isSaved;
-                                                    });
-
-                                                    final userId =
-                                                        await _getUserId();
-
-                                                    if (blog.isSaved) {
-                                                      // Save post to Firestore if marked as saved
-                                                      await _authMethods
-                                                          .savePost(
-                                                              userId, blog);
-                                                    } else {
-                                                      // Remove post from Firestore if unmarked
-                                                      await _authMethods
-                                                          .removeSave(userId,
-                                                              blog.id ?? "");
-                                                    }
-                                                  },
-                                                )
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8.0),
-                                            // Increased spacing
-                                            Text(
-                                              likeCount == 1
-                                                  ? '$likeCount Like'
-                                                  : '$likeCount Likes',
-                                              style: const TextStyle(
-                                                fontSize: 14.0,
-                                                color: Colors.black87,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          blog.authorName ?? 'Anonymous',
+                          style: kLabelStyle,
+                        ),
+                        Text(
+                          formattedDate,
+                          style: kBodyStyle.copyWith(fontSize: 12, color: kTextLight),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kInputFill,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      blog.category ?? 'General',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                    ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Text(
+                blog.title ?? 'Untitled',
+                style: kTitleStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                blog.content ?? '',
+                style: kSubtitleStyle.copyWith(fontSize: 14),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _buildAction(Icons.favorite_rounded, likeCount.toString(), Colors.redAccent),
+                  const SizedBox(width: 24),
+                  FutureBuilder<int>(
+                    future: _authMethods.countComments(blog.id!),
+                    builder: (context, snapshot) => _buildAction(
+                      Icons.chat_bubble_rounded, 
+                      (snapshot.data ?? 0).toString(),
+                      Colors.blueAccent
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.share_rounded, color: kTextLight, size: 20),
+                    onPressed: () {
+                      // Logic can be added here or kept as is
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAction(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
+          ),
+        ],
+      ),
     );
   }
 }

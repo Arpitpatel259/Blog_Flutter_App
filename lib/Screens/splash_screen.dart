@@ -1,11 +1,11 @@
 import 'package:blog/Authentication/user_login_screen.dart';
 import 'package:blog/Model/bloglist_model.dart';
 import 'package:blog/Authentication/authentication.dart';
+import 'package:blog/Utilities/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../Model/savedlist_model.dart';
 import 'blog_details_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -18,323 +18,287 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   final AuthMethods _authMethods = AuthMethods();
   List<BlogModel> _blogList = [];
-
-
-
   final Map<String, String> _profileImages = {};
-  bool isLoading = true;
-  AuthMethods authMethods = AuthMethods();
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _requestPermissions();
+    _initializeData();
   }
 
-  Future<void> _requestPermissions() async {
-    final cameraStatus = await Permission.camera.request();
-    final storageStatus = await Permission.storage.request();
+  Future<void> _initializeData() async {
+    _refreshBlogs();
+    _requestPermissionsSilently();
+  }
 
-    if (cameraStatus.isDenied || storageStatus.isDenied) {
-      if (cameraStatus.isDenied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-                'Camera permission is required for this app. Please enable it from app settings.'),
-            action: SnackBarAction(
-              label: 'Settings',
-              onPressed: () => openAppSettings(),
-            ),
-          ),
-        );
-      }
-
-      if (storageStatus.isDenied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-                'Storage permission is required for this app. Please enable it from app settings.'),
-            action: SnackBarAction(
-              label: 'Settings',
-              onPressed: () => openAppSettings(),
-            ),
-          ),
-        );
-      }
-    } else if (cameraStatus.isGranted && storageStatus.isGranted) {
-      // Permissions are granted, continue with your functionality
-      _refreshBlogs();
+  Future<void> _requestPermissionsSilently() async {
+    try {
+      await [
+        Permission.camera,
+        Permission.storage,
+      ].request();
+    } catch (e) {
+      debugPrint('Permission request failed: $e');
     }
   }
 
   Future<void> _refreshBlogs() async {
-    setState(() {
-      isLoading = true;
-    });
+    if (!mounted) return;
+    setState(() => _isLoading = true);
 
-    final blogs = await _authMethods.getAllBlogs();
-    setState(() {
-      _blogList = blogs;
-      isLoading = false;
-    });
+    try {
+      final blogs = await _authMethods.getAllBlogs();
+      if (mounted) {
+        setState(() {
+          _blogList = blogs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching blogs: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _getImage(String userId) async {
-    if (_profileImages.containsKey(userId)) {
-      return; // Image already fetched
-    }
+    if (userId.isEmpty || _profileImages.containsKey(userId)) return;
 
-    DocumentSnapshot userSnapshot =
-        await FirebaseFirestore.instance.collection('User').doc(userId).get();
+    try {
+      DocumentSnapshot userSnapshot =
+          await FirebaseFirestore.instance.collection('User').doc(userId).get();
 
-    if (userSnapshot.exists) {
-      setState(() {
-        _profileImages[userId] = userSnapshot['imgUrl'];
-      });
+      if (userSnapshot.exists && mounted) {
+        setState(() {
+          _profileImages[userId] = userSnapshot['imgUrl'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching image for $userId: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text(
-          'Blog',
-          style: TextStyle(
-            color: Colors.white,
+      backgroundColor: kBackgroundColor,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 120,
+                floating: true,
+                pinned: true,
+                backgroundColor: kBackgroundColor,
+                elevation: 0,
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(
+                    'BLOGSCAPE',
+                    style: kHeadingStyle.copyWith(
+                      fontSize: 20,
+                      letterSpacing: 4,
+                      color: kPrimaryColor,
+                    ),
+                  ),
+                ),
+              ),
+              if (_isLoading)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 3)),
+                )
+              else if (_blogList.isEmpty)
+                SliverFillRemaining(
+                  child: _buildEmptyState(),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 260),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final blog = _blogList[index];
+                        if (blog.userId != null) {
+                          _getImage(blog.userId!);
+                        }
+                        return _buildBlogCard(blog);
+                      },
+                      childCount: _blogList.length,
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ),
-        backgroundColor: Colors.blueGrey[800],
-        // Darker blue-grey for the AppBar
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(16),
+          _buildBottomOverlay(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.auto_stories_outlined, size: 64, color: kTextLight),
+          const SizedBox(height: 16),
+          Text('No stories yet', style: kTitleStyle),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlogCard(BlogModel blog) {
+    final String authorId = blog.userId ?? '';
+    final String? pImage = _profileImages[authorId];
+    final int likeCount = blog.like.length;
+    final formattedDate = blog.timestamp != null
+        ? DateFormat('MMM dd, yyyy').format(blog.timestamp!.toDate())
+        : 'Recently';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: kInputBorder),
+        boxShadow: kSoftShadow,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlogDetailScreen(blog: blog, image: pImage),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: kInputFill,
+                    child: ClipOval(child: _authMethods.buildProfileImage(pImage)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(blog.authorName ?? 'Anonymous', style: kLabelStyle.copyWith(fontSize: 13)),
+                      Text(formattedDate, style: kBodyStyle.copyWith(fontSize: 11)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(blog.title ?? 'Untitled', style: kTitleStyle.copyWith(fontSize: 18)),
+              const SizedBox(height: 8),
+              Text(
+                blog.content ?? '',
+                style: kBodyStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _buildMiniStat(Icons.favorite_rounded, "$likeCount", Colors.redAccent),
+                  const SizedBox(width: 16),
+                  _buildMiniStat(Icons.chat_bubble_rounded, "0", Colors.blueAccent),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
-              : RefreshIndicator(
-                  onRefresh: _refreshBlogs,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 150.0),
-                    itemCount: _blogList.length,
-                    itemBuilder: (context, index) {
-                      final blog = _blogList[index];
-                      _getImage(blog.userId!);
-                      final List<dynamic> likers = blog.like ?? [];
-                      final int likeCount = likers.length;
+    );
+  }
 
-                      final Timestamp timestamp = blog.timestamp!;
-                      final DateTime dateTime = timestamp.toDate();
-                      final String formattedDate =
-                          DateFormat.yMMMd().add_jm().format(dateTime);
+  Widget _buildMiniStat(IconData icon, String value, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color.withValues(alpha: 0.6)),
+        const SizedBox(width: 6),
+        Text(value, style: kBodyStyle.copyWith(fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
 
-                      // Get author image
-                      final String authorId = blog.userId!;
-                      final String? pImage = _profileImages[authorId];
-
-                      return GestureDetector(
-                        onTap: () {},
-                        child: Card(
-                          margin: const EdgeInsets.all(8.0),
-                          color: Colors
-                              .grey[200], // Light grey for card background
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        ClipOval(
-                                          child: authMethods
-                                              .buildProfileImage(pImage),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              blog.authorName ?? 'Unknown',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors
-                                                    .black87, // Dark text color
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  blog.title ?? 'Blog Title',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black, // Darker text color
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  formattedDate,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.black54, // Lighter text color
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                GestureDetector(
-                                  onTap: () {
-                                    _getImage(blog.userId!);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => BlogDetailScreen(
-                                            blog: blog, image: pImage),
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    blog.content ?? 'Blog Content',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.black87, // Dark text color
-                                    ),
-                                    maxLines: 5,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            likeCount > 0
-                                                ? Icons.favorite
-                                                : Icons.favorite_border,
-                                            color: likeCount > 0
-                                                ? Colors.red
-                                                : Colors
-                                                    .black54, // Color for inactive state
-                                          ),
-                                          onPressed: () {},
-                                        ),
-                                        Text(
-                                          "$likeCount",
-                                          style: const TextStyle(
-                                            fontSize: 14.0,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors
-                                                .black87, // Dark text color
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.mode_comment_outlined,
-                                              color: Colors.black54),
-                                          // Color for comment icon
-                                          onPressed: () {
-                                            print("Comment Clicked");
-                                          },
-                                        ),
-                                        const Text(
-                                          "0",
-                                          style: TextStyle(
-                                            fontSize: 14.0,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors
-                                                .black87, // Dark text color
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.send_outlined,
-                                          color: Colors.black54),
-                                      // Color for send icon
-                                      onPressed: () {
-                                        print("Share Clicked");
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey[800], // Matching color with AppBar
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Sign in to unlock the full blogging experience and start writing',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const UserLoginScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.blueGrey[800],
-                        // Button text color
-                        backgroundColor: Colors.white,
-                      ),
-                      child: const Text('Sign In'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+  Widget _buildBottomOverlay() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 40, 24, 40),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              kBackgroundColor.withValues(alpha: 0),
+              kBackgroundColor.withValues(alpha: 0.8),
+              kBackgroundColor,
+            ],
           ),
-        ],
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: kTextPrimary,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: kTextPrimary.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Join the Community',
+                style: kTitleStyle.copyWith(color: Colors.white, fontSize: 22),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Share your thoughts and engage with writers around the world.',
+                textAlign: TextAlign.center,
+                style: kBodyStyle.copyWith(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const UserLoginScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: Text('Get Started', style: kButtonStyle),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
